@@ -1,0 +1,219 @@
+#VRML_SIM R2023b utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/robots/neuronics/ipr/protos/IprHd6m180.proto"
+
+WorldInfo {
+  info [
+    "A demo world using the IPR HD6M180"
+  ]
+  title "IPR Cube"
+  basicTimeStep 20
+  contactProperties [
+    ContactProperties {
+      material1 "target"
+      material2 "gripper"
+      coulombFriction [
+        2
+      ]
+    }
+  ]
+}
+Viewpoint {
+  orientation -0.0826316079933456 -0.991673794922707 -0.09876791900222967 5.623188748301417
+  position -1.842500486544012 0.5071028033318021 2.0247884410178827
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+DEF FLOOR Solid {
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.901961 0.901961 0.980392
+        roughness 1
+        metalness 0
+      }
+      geometry DEF PLANE Plane {
+        size 5 5
+      }
+    }
+  ]
+  name "ground"
+  boundingObject DEF PLANE Plane {
+    size 5 5
+  }
+  locked TRUE
+}
+Solid {
+  translation 0.4 0.2 0.71
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.8 0.8 0.8
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.2 0.3 0.15
+      }
+    }
+  ]
+  name "box"
+  boundingObject Box {
+    size 0.2 0.3 0.15
+  }
+}
+Solid {
+  translation 0.24 1 0.685
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 0.8 0.8 0.8
+        roughness 1
+        metalness 0
+      }
+      geometry Box {
+        size 0.5 0.1 0.1
+      }
+    }
+  ]
+  name "weight"
+  boundingObject Box {
+    size 0.5 0.1 0.1
+  }
+}
+DEF TARGET Solid {
+  translation -3.777712577311296e-09 0.29999999609214056 0.6588016678042944
+  rotation 0.7189779674534064 -0.69503286419893 -1.4205753065763237e-09 4.9882123459832686e-08
+  children [
+    DEF CUBE Shape {
+      appearance PBRAppearance {
+        baseColor 1 0 0
+        roughness 0.365482152
+        metalness 0
+      }
+      geometry Box {
+        size 0.053 0.052 0.052
+      }
+    }
+  ]
+  name "cube0"
+  contactMaterial "target"
+  boundingObject DEF BOUNDING_CUBE Box {
+    size 0.053 0.052 0.052
+  }
+  physics DEF PHYSICS_CUBE Physics {
+    density -1
+    mass 0.008
+  }
+  linearVelocity -4.2394640474720283e-13 -4.3643697872707377e-13 -2.162172448028077e-08
+  angularVelocity 3.942462226658262e-12 -3.813685566721293e-12 -1.433933472469761e-16
+}
+IprHd6m180 {
+  hidden position_0_0 1.6079889585439676e-09
+  hidden translation_2 0 0 0.2035
+  hidden rotation_2 0 0 1 0.12885500160795893
+  hidden position_2_0 2.6779533597692023e-07
+  hidden translation_3 0 0 0
+  hidden rotation_3 -1 0 0 0.5755552677953293
+  hidden position_3_0 -9.528519607668921e-07
+  hidden translation_4 0 0 0.19
+  hidden rotation_4 1 0 0 2.2112509528519606
+  hidden position_4_0 3.39312916864702e-07
+  hidden translation_5 0 0 0.139
+  hidden rotation_5 -1 0 0 2.0254103393129173
+  hidden position_5_0 -4.126552958553051e-10
+  hidden translation_6 0 0 0.1185
+  hidden rotation_6 0 0 0.9999999999999999 2.9943699995873447
+  hidden position_6_0 7.293667843268523e-09
+  hidden position_6_1 2.2034161405552016e-09
+  hidden translation_8 0 0 0.0983
+  hidden rotation_8 0 1 0 0
+  hidden translation_13 0.005700054672304326 -3.6866827446413453e-07 0.03249909257402672
+  hidden rotation_13 -3.909129477594379e-14 1 8.867932611209471e-15 0.1920000000000003
+  hidden translation_14 5.46724451475078e-08 -3.686682816805842e-07 0.0836990925740484
+  hidden rotation_14 -0.9533198478932481 -0.03707354964029298 0.29967785959236826 7.860956039865205e-15
+  hidden translation_16 0 0 0.0983
+  hidden rotation_16 0 -1 0 0
+  hidden translation_21 -0.007699945327710581 -3.6866837094251537e-07 0.03249909257409955
+  hidden rotation_21 -4.0780118808733803e-16 -1 1.840333566753115e-15 -2.9496853071795854
+  hidden translation_22 5.46724352457062e-08 -3.686683173187433e-07 0.0836990925740746
+  hidden rotation_22 -4.57966998149315e-16 -1 2.386979505505521e-15 3.141500000000001
+  translation 0 0 0.645
+  controller "ipr_cube_python"
+  tableSlot [
+    Solid {
+      translation -3.309963303443908e-09 -3.42398809305422e-09 -0.00019638095341623085
+      rotation 0.7189769872457751 -0.6950338781750057 -2.194761641919672e-10 4.9878427153049184e-08
+      children [
+        DEF PLANE Pose {
+          translation 0.2225 0.5225 -0.027
+          children [
+            Shape {
+              appearance DEF WOOD PBRAppearance {
+                baseColor 0.839216 0.619608 0.0588235
+                roughness 0.23459205900000013
+                metalness 0
+              }
+              geometry Box {
+                size 0.6 1.2 0.03
+              }
+            }
+          ]
+        }
+        DEF LEG1 Pose {
+          translation 0.03 0.1 -0.342
+          children [
+            DEF LEG Shape {
+              appearance USE WOOD
+              geometry Box {
+                size 0.05 0.05 0.6
+              }
+            }
+          ]
+        }
+        DEF LEG2 Pose {
+          translation 0.03 1 -0.342
+          children [
+            USE LEG
+          ]
+        }
+        DEF LEG3 Pose {
+          translation 0.4 0.1 -0.342
+          children [
+            USE LEG
+          ]
+        }
+        DEF LEG4 Pose {
+          translation 0.4 1 -0.342
+          children [
+            USE LEG
+          ]
+        }
+      ]
+      boundingObject Group {
+        children [
+          USE PLANE
+          USE LEG1
+          USE LEG2
+          USE LEG3
+          USE LEG4
+        ]
+      }
+      physics Physics {
+        mass 10
+      }
+    }
+  ]
+  wristSlot [
+    DEF WRIST Solid {
+    }
+  ]
+}
+Robot {
+  controller "target_coordinates"
+  supervisor TRUE
+}
