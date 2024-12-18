@@ -1,0 +1,22 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Module",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": ["app.main:app","--reload"],
+            "env": {
+                "AZURE_OPENAI_KEY"   : "FT484wfp2HgsmKPzfBGgO3iXWc848ZMTGmH69qq4iQLqkkjirGr1JQQJ99ALACHYHv6XJ3w3AAAAACOGy0xp",
+                "AZURE_OPENAI_ENDPOINT" : "https://aminm-m4mh1l2m-eastus2.services.ai.azure.com/",
+                "AZURE_OPENAI_KEY_2" : "5jY9L7SqlfzsEUQly4hpzsu2N276seqMMB1uQ5qpKBE9oXau5SMtJQQJ99ALACfhMk5XJ3w3AAAAACOGUS1V",
+                "AZURE_OPENAI_ENDPOINT_2" : "https://aminm-m4nemh7a-swedencentral.services.ai.azure.com/",
+                "GEMINI_API_KEY" : "AIzaSyB3YIp87FQom1SP0InoK7hA6hIIOeOdbAA"
+            }
+        }
+    ]
+}
