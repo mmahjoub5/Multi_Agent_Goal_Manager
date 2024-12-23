@@ -1,101 +1,92 @@
 from fastapi import FastAPI, BackgroundTasks
 from typing import Dict
-from pydantic import BaseModel
-from typing import List, Dict
-from jinja2 import Environment, FileSystemLoader
-from app.gpt import GPTChatCompletionClient, GPTCompletionClient, GeminiClient
-from app.helpers import InMemoryResponseManager
+from ipr_worlds.backend.app.configs.auto_gen import autogen_agent_config
 import pdb
-from dotenv import load_dotenv
-import os 
-
-class Enviroment(BaseModel):
-    robotLinks:List
-    goalPosition: List
-    NumberOfRobots:int
-    initialPositions:List
-
-import opik
-
-
-
-# Define input structure
-class TaskRequest(BaseModel):
-    environment:Enviroment  # Details of the environment (e.g., objects, obstacles)
-
-
-
-# Define output structure
-class TaskResponse(BaseModel):
-    message: List[Dict[str,str]]
-   
-# Load environment variables at the start of your application
-load_dotenv()
-OPENAI_KEY_CHAT = os.getenv("AZURE_OPENAI_KEY")
-ENDPOINT_CHAT = os.getenv("AZURE_OPENAI_ENDPOINT")
-
-OPENAI_KEY_COMPLETION = os.getenv("AZURE_OPENAI_KEY_2")
-ENDPOINT_COMPLETION = os.getenv("AZURE_OPENAI_ENDPOINT_2")
-
-COMPLETION_VERSION = "2024-08-01-preview"  # Update if needed
- # Endpoint URL for the deployment
-COMPLETION_DEPLOYMENT_NAME = "davinci-002"   # Replace with your deployed model name
-
-# OPIK KEY 
-OPIK_KEY = os.getenv('OPIK_KEY')
-opik.configure(api_key=OPIK_KEY)
- # API version
-CHAT_VERSION = "2024-08-01-preview"  # Update if needed
-    # Endpoint URL for the deployment
-CHAT_DEPLOYMENT_NAME = "gpt-35-turbo-16k"  # Replace with your deployed model name
-
-
-
-
-
-
-
-
-if not OPENAI_KEY_CHAT or not ENDPOINT_CHAT:
-    raise ValueError("Please set the AZURE_OPENAI_KEY and AZURE_OPENAI_ENDPOINT environment variables.")
-
-if not OPENAI_KEY_COMPLETION or not ENDPOINT_COMPLETION:
-        raise ValueError("Please set the AZURE_OPENAI_KEY and AZURE_OPENAI_ENDPOINT environment variables.")
-
-# archive for now
-def templateManager(newInput:str):
-    # load template 
-    # Define the directory containing your templates
-    template_dir = "app/templates"  # Adjust this to your directory structure
-    env = Environment(loader=FileSystemLoader(template_dir))
-
-    # Load the ChatGPT prompt template
-    template = env.get_template("summarizeEnviroment.jinja2")
-    # Define data for rendering
-    data = {
-        "new_input": newInput
-    }
-
-    prompt = template.render(data)
-    return prompt
-
-
+from ipr_worlds.shared.models import TaskRequest, TaskResponse, SetGoalRequest, SetGoalResponse, Enviroment
+from ipr_worlds.backend.app.chains import one_llm_chain, two_llm_chain, autogen_chain
+from ipr_worlds.backend.app.helpers import templateManager
+from ipr_worlds.shared.rabbitmq_manager import RabbitMQConsumerManager
+from datetime import datetime
+import json
+from pydantic import ValidationError
+from ipr_worlds.backend.app.configs.config import rabbitmq_client
+from enum import Enum
+import threading
 
 # initialize app
 app = FastAPI()
+consumer_manager = RabbitMQConsumerManager(rabbitmq_client)
+
+'''
+    EndPoint set by request to start set goal and connection to the high level controller
+    1. Client will provide meta data message about enviroment(hard coded for now):
+        - robot type(s)
+        - Number of Robots
+        - Robot Capabilities
+    2. Robot Locations
+    3. Goal Specifications
+    4. Task Description
+        - what the task the client is asking 
+    5. Environment Constraints
+    6. Goal Specifications:
+    7. Communication Protocol (dont need for now)
+    8. Performance Metrics (dont need for now)
+    9.sets up RabitMQ client
+    10. sets up Autogen/LLMClient objects
+    11. sets up call backs for all the message queue topics 
+
+'''
+
+class TASK_CONTROLLER_TYPE(Enum):
+    ONE_LLM = "one_llm"
+    TWO_LLM = "two_llm"
+    AUTOGEN = "autogen"
+
+def on_task_request_callback(ch, method, properties, body):
+    try:
+        packet = TaskRequest.model_validate_json(body.decode())
+    except ValidationError as e:
+        print(f"Error deserializing message: {e}")
+    except Exception as e:
+        print(f"Unexpected error during deserialization: {e}")
+    ch.basic_ack(delivery_tag=method.delivery_tag)
+    prompt = templateManager(environment=packet.environment, tasks=packet.tasks)
+    task_controller_type = TASK_CONTROLLER_TYPE[packet.task_controller_type.upper()]
+    
+    if task_controller_type == TASK_CONTROLLER_TYPE.ONE_LLM:
+        response:TaskResponse = one_llm_chain(prompt)
+    elif task_controller_type == TASK_CONTROLLER_TYPE.TWO_LLM:
+        response:TaskResponse = two_llm_chain(prompt)
+    elif task_controller_type == TASK_CONTROLLER_TYPE.AUTOGEN:
+        response:TaskResponse = autogen_chain(prompt)
+    else:
+        raise ValueError(f"Unknown TASK_CONTROLLER_TYPE type: {packet.task_controller_type}")
+    
+    if response is not None:
+        rabbitmq_client.send_message("task_feedback", message={"response":response.model_dump_json()})
 
 
-@opik.track
-# def my_llm_chain(input_text):
-#     # Call the different parts of my chain
-#     return input_text
+
+    
+@app.post("/setGoal", response_model=SetGoalResponse)
+def setGoal_and_startQs(packet:SetGoalRequest):
+
+    # TODO: update robot meta data and id to DB
+    consumer_manager.start_consumer("task_request", callback=on_task_request_callback)
+    #consumer_manager.start_consumer("task_feedback", callback=on_task_feedback_callback)
 
 
+    print("Consumer thread started, processing RabbitMQ messages in the background.")
+    response = SetGoalResponse(
+                            topicNames=[f"task_request", f"task_feedback"], 
+                            time = datetime.utcnow().isoformat())
+    return response
+    
 
-@app.get("/")
-def defualt():
-    return {"value":"you are gay"}
 
+@app.post("/goalReached")
+def close_connection(packet:SetGoalRequest):
+   pass
 @app.get("/async")
 async def getAsync():
     return {"value":"you are async gay"}
@@ -106,72 +97,32 @@ def submit_task(task: Dict, background_task: BackgroundTasks):
     pass
 
 
-@app.get("/id")
-def get_id():
-    return {"id":1234}
-
-''''
-    Function taks in the enviroment from client and a end goal from client robot
-
-    Returns a list of concise task the robot needs to follow
 
 
-'''
-@opik.track
-def chain(prompt:str) -> TaskResponse:
-    response_manager = InMemoryResponseManager()
-    
-
-    completion_client = GPTCompletionClient(OPENAI_KEY_COMPLETION, 
-                                        ENDPOINT_COMPLETION, 
-                                        api_version=COMPLETION_VERSION, 
-                                        deployment_name=COMPLETION_DEPLOYMENT_NAME,
-                                        response_manager=response_manager)
-    
-    updated_prompt = completion_client.call(prompt=prompt)
-    updated_prompt = completion_client.parse_response(updated_prompt)
-    
-
-    # TODO: pass the prompt to another gpt call to create the tasks based on the list of possible tasks 
-    messages = [
-            {
-                "role": "system", 
-                "content": "You are an assistant. trying to solve a robotics problem", 
-            },
-            {
-                "role": "user", 
-                "content": updated_prompt[0]
-            }
-        ]
-    
-
-    chat_client = GPTChatCompletionClient(api=OPENAI_KEY_CHAT,
-                                         base_url=ENDPOINT_CHAT,
-                                         api_version=CHAT_VERSION,
-                                         deployment_name=CHAT_DEPLOYMENT_NAME,
-                                         response_manager=response_manager)
-
-    for i in messages:
-        chat_client.add_memory(role=i["role"], content = i["content"])
-    
-    chat_response = chat_client.call(messages=messages)
-    msgs = chat_client.parse_response(chat_response)
-    
-    for i in msgs:
-        chat_client.add_memory(role = "assistant", content = i)
-
-    # update database with previous chats and movements 
-    response = TaskResponse(message=chat_client.getHistory())
-    return response
 
 @app.post("/taskPlaningTwoGPT", response_model=TaskResponse)
-def get_task(packet:TaskRequest):
+def get_task_one_gpt(packet:TaskRequest):
     
     # TODO: do one chat gpt call to create a prompt based on pose and enviroment and maybe history of certain examples 
-    prompt = templateManager(newInput=packet)  
-    response = chain(prompt)
+    prompt = templateManager(enviroment=packet.environment, tasks=packet.tasks) 
+    response = two_llm_chain(prompt)
 
     return response.model_dump()
+
+
+@app.post("/taskPlaningOneGPT4", response_model=TaskResponse)
+def get_task_two_gpt(packet:TaskRequest):
+    prompt = templateManager(environment=packet.environment, tasks=packet.tasks)
+    response = one_llm_chain(prompt)
+    return response.model_dump()
+   
+    
+# @app.post("/autogen", response_model=TaskResponse)
+# def get_task(packet:TaskRequest):
+#     prompt = templateManager(newInput=packet)
+    
+#     return response.model_dump()
+
 
     
 

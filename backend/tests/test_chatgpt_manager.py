@@ -1,42 +1,77 @@
-from app.gpt import ChatGPTResponseManager, chatGPTCall
+from ipr_worlds.backend.app.LLMClient import AutoGenLLMClient
+from ipr_worlds.backend.app.helpers import InMemoryResponseManager
 import unittest
 from typing import List, Dict
 from dataclasses import dataclass
-
-
-
+from ipr_worlds.backend.app.configs.auto_gen import autogen_agent_config
+from ipr_worlds.backend.app import LLM_Config
+from ipr_worlds.shared.models import Enviroment
+from ipr_worlds.backend.app.helpers import templateManager
+from ipr_worlds.backend.app.templates import example_strings
 # Unit Tests
-class TestChatGPTResponseManager(unittest.TestCase):
+
+# TODO: find a way to test this 
+class TestAutoGenClient(unittest.TestCase):
+    
     def setUp(self):
-        """
-        Set up a fresh instance of ChatGPTResponseManager and sample data for each test.
-        """
-        self.manager = ChatGPTResponseManager()
-        self.response_example = {
-            "choices": [
-                {"message": {"content": "Why don't scientists trust atoms? Because they make up everything!"}},
-                {"message": {"content": "Why did the chicken join a band? Because it had the drumsticks!"}}
-            ]
+        self.response_manager = InMemoryResponseManager()
+        self.client = AutoGenLLMClient(config=autogen_agent_config, response_manager=self.response_manager, LLMConfig=LLM_Config)
+    def test_configure_agents_valid(self):
+        #self.client = AutoGenLLMClient(config=autogen_agent_config, response_manager=None, LLMConfig=LLM_Config)
+        for i in range(len(self.client.agents)):
+            assert self.client.agents[i].name == autogen_agent_config["agents"][i]["name"]
+
+    # def test_autogen_groupchat(self):
+    #     json = {
+    #         "robotLinks": [1,2,3],
+    #         "goalPosition": [0,0,0],
+    #         "NumberOfRobots": 3,
+    #         "initialPositions": [0,10,1]
+    #     }
+    #     environment = Enviroment(**json)
+    #     print(environment.model_dump())
+
+
+
+
+    #     prompt = templateManager(environment=environment.model_dump() , 
+    #                             tasks=["go up", "go left", "go right", "go down"],
+    #                             example_one= example_strings.example1_prompt,
+    #                             example_two = example_strings.example2_prompt
+
+    #                             )
+    #     self.client = AutoGenLLMClient(config=autogen_agent_config, response_manager=None, LLMConfig=LLM_Config)
+    #     self.client.call(message=prompt)
+    
+        
+    def test_autogen_memory(self):
+        json = {
+            "robotLinks": [1,2,3],
+            "goalPosition": [0,0,0],
+            "NumberOfRobots": 3,
+            "initialPositions": [0,10,1]
         }
-        return super().setUp()
+        environment = Enviroment(**json)
+        #print(environment.model_dump())
+        prompt = templateManager(environment=environment.model_dump() , 
+                                tasks=["go up", "go left", "go right", "go down"],
+                                example_one= example_strings.example1_prompt,
+                                example_two = example_strings.example2_prompt
 
-
-    def testGPTCall(self):
-        messages = [
-            {
-                "role": "system", 
-                "content": "You are an assistant. trying to solve a robotics problem", 
-            },
-            {
-                "role": "user", 
-                "content": "tell me how to pick this up based on my enviroment:"
-            }
-        ]
-
-
-        response:ChatGPTResponseManager = chatGPTCall(messages=messages)
-        for i in range(len(messages)):
-            self.assertDictEqual(messages[i], response.messages[i])
-
+                                )
+        self.client.call(message=prompt)
         
-        
+        for agent in self.client.agents:
+            group_messages = self.client.manager.chat_messages_for_summary(agent=agent)
+            for i in group_messages:
+                self.client.add_memory(role=i["role"], content =i["content"])
+
+
+        #print(self.client.getHistory())
+        # for agent in self.client.agents:
+        #     group_messages = self.client.manager.chat_messages_for_summary(agent=agent)
+        #     for index,iter in enumerate(self.client.response_manager):
+        #         for i in group_messages[index].keys:
+        #             print("printing keys" , i)
+        #         assert group_messages[index].keys == iter.keys
+        #         # assert group_messages[index].value == iter.value

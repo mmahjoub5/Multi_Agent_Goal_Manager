@@ -2,7 +2,7 @@
 from typing import Literal
 from typing import List, Dict, AnyStr
 from abc import ABC, abstractmethod
-
+from jinja2 import Environment, FileSystemLoader
 
 class LLMResponseManager(ABC):
     """
@@ -54,4 +54,22 @@ class InMemoryResponseManager(LLMResponseManager):
             raise IndexError("Response index out of range.")
     
     
-    
+def templateManager(**kwargs):
+    # load template 
+    # Define the directory containing your templates
+    template_dir = "ipr_worlds/backend/app/templates"  # Adjust this to your directory structure
+    env = Environment(loader=FileSystemLoader(template_dir))
+
+    # Load the ChatGPT prompt template
+    template = env.get_template("summarizeEnvironment.jinja2")
+    print(kwargs["environment"])
+    # Define data for rendering
+    data = {
+        "environment": kwargs["environment"],
+        "tasks": kwargs["tasks"],
+        "example_one": kwargs.get("example_one"),
+        "example_two": kwargs.get("example_two")
+    }
+
+    prompt = template.render(data)
+    return prompt
