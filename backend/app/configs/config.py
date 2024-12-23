@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 import os 
 import opik
 from ipr_worlds.shared.rabbitmq_manager import RabbitMQ_Client
+
 # Load environment variables at the start of your application
 load_dotenv()
 OPENAI_KEY_CHAT = os.getenv("AZURE_OPENAI_KEY")
@@ -33,6 +34,8 @@ LLM_Config = [
 ]
 
 
+
+
 if not OPENAI_KEY_CHAT or not ENDPOINT_CHAT:
     raise ValueError("Please set the AZURE_OPENAI_KEY and AZURE_OPENAI_ENDPOINT environment variables.")
 
@@ -41,3 +44,7 @@ if not OPENAI_KEY_COMPLETION or not ENDPOINT_COMPLETION:
 
 # RabitMQ client
 rabbitmq_client = RabbitMQ_Client()
+
+#MONGO DB
+MONGO_URI = "mongodb://localhost:27017" 
+DATABASE_NAME = "robotarm_db"

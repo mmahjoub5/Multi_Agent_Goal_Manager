@@ -70,11 +70,11 @@ def on_task_request_callback(ch, method, properties, body):
     
 @app.post("/setGoal", response_model=SetGoalResponse)
 def setGoal_and_startQs(packet:SetGoalRequest):
+    # get robot meta data 
+
 
     # TODO: update robot meta data and id to DB
     consumer_manager.start_consumer("task_request", callback=on_task_request_callback)
-    #consumer_manager.start_consumer("task_feedback", callback=on_task_feedback_callback)
-
 
     print("Consumer thread started, processing RabbitMQ messages in the background.")
     response = SetGoalResponse(

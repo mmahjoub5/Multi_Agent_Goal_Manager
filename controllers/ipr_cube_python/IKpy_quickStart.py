@@ -16,7 +16,7 @@ from typing import List, Dict
 import inspect
 from ipr_worlds.shared.models import TaskRequest, SetGoalRequest
 from ipr_worlds.shared.rabbitmq_manager import RabbitMQ_Client, RabbitMQConsumerManager
-
+from time import sleep
 # my_chain = ikpy.chain.Chain.from_urdf_file("controllers/ipr_cube_python/IprHd6m180.urdf")
 # urdf = "controllers/ipr_cube_python/IprHd6m180.urdf"
 # my_chain =  IKPY_WRAPPER(urdf=urdf)
@@ -48,19 +48,24 @@ json = { "environment":
 
 def on_task_feedback_callback(ch, method, properties, body):
     print(f" [x] Received {body}")
+    ch.basic_ack(delivery_tag=method.delivery_tag)
+    rabbitmq_client.send_message("task_request", message=json)
 
 # env = TaskRequest(**json)
 
 consumer_client = RabbitMQConsumerManager(rabbitmq_client=rabbitmq_client)
 
-for i in range(2):
-    goalRequest = SetGoalRequest(**robot_capability_json)
-    print(goalRequest)
-    response = client.post("/setGoal", data=goalRequest.model_dump())
 
-    rabbitmq_client.send_message("task_request", message=json)
-    consumer_client.start_consumer("task_feedback", callback=on_task_feedback_callback)
+goalRequest = SetGoalRequest(**robot_capability_json)
+print(goalRequest)
+response = client.post("/setGoal", data=goalRequest.model_dump())
 
+rabbitmq_client.send_message("task_request", message=json)
+consumer_client.start_consumer("task_feedback", callback=on_task_feedback_callback)
+
+while True:
+    sleep(1)
+    
 
 
 
