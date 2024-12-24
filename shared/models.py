@@ -2,18 +2,15 @@ from pydantic import BaseModel
 from typing import List, Dict, Optional, Union
 
 class Enviroment(BaseModel):
-    robotLinks:List
-    goalPosition: List
-    NumberOfRobots:int
-    initialPositions:List
-
+    obstacles: Optional[List[List[Union[float,int]]]]
+    Position:List[Union[float,int]]
 
 # Define input structure
 class TaskRequest(BaseModel):
     environment:Enviroment  # Details of the environment (e.g., objects, obstacles)
-    tasks: List
+    robot_id: str
     task_controller_type: str # autogen, oneLLM, TWOLLM
-    robot_id:str
+
 
 
 # Define output structure
@@ -49,6 +46,10 @@ class RobotLocation(BaseModel):
     robot_id: str
     position: List[float]  # Example: [x, y, z] coordinates of the robot
 
+class PossibleTasks(BaseModel):
+    robot_controls:List
+    robot_computations:List
+
 # Main data model for the request body
 class SetGoalRequest(BaseModel):
     # Meta data about the environment
@@ -60,6 +61,7 @@ class SetGoalRequest(BaseModel):
     environment_constraints: Optional[Dict[str, str]] = {}  # Constraints for the environment (e.g., obstacles, boundaries)
     goal_specifications: GoalSpecifications  # Specifications for the goal of the task
     task_controller_type: str # autogen, oneLLM, TWOLLM
+    possible_tasks:PossibleTasks
 
 class SetGoalResponse(BaseModel):
     topicNames: List[str]

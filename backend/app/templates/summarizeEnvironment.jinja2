@@ -1,6 +1,20 @@
-Control Expert is tasked with generating optimized tasks for a 6-DOF robotic arm. The environment variables include:
+Control Expert is tasked with generating optimized tasks for a {{robot_type}}. 
+To reach goal {{goal}}
+
+
+The environment variables include:
 
 Below we have listed examples of enviroment input to the model, and the succesful generated tasks
+
+Pick up and object at location  [x,y,z]
+
+1. get end effector position at init 
+2. calc inverse kinematics to reach final position, will have values for all the joints
+3. set upper arm index to moving position
+4. set all other motors to position
+5. loop and step until all motors in final position
+6.lower arm, but moving upper arm motor 
+7. close gripper (should not be able to grap object)
 
 
 {{example_one}}
@@ -11,7 +25,17 @@ Job for Control Expert:
 
 1. Based on the current enviroment
 
-{{ environment }}
+joint positions:
+{{ position }}
+
+objstacke distances: 
+{{obstacles}}
+
+
+
+and the robot capabilities 
+{{robot_capabilities}}
+
 
 2. create a detailed set of tasks that the robotic arm can perform. Each task should be actionable, realistic, and take into account the constraints and capabilities of the arm. 
 3. Focus on efficiency, collision avoidance, and the use of all six degrees of freedom when possible. 

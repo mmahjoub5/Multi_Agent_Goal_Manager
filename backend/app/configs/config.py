@@ -48,3 +48,5 @@ rabbitmq_client = RabbitMQ_Client()
 #MONGO DB
 MONGO_URI = "mongodb://localhost:27017" 
 DATABASE_NAME = "robotarm_db"
+
+ROBOTTABLE = {}

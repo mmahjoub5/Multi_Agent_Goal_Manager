@@ -17,7 +17,7 @@ my_chain.active_links_mask = [False, True, True, True, True, True, True, False ]
 
 target_point = [3.44e-5, -.30, 0]
 
-target_orientation = [3.00660, -1.35619, 1.19083, -3.24647, -2.94524, 0.727475, -0.727475]
+
 initial_position = my_chain.inverse_kinematics_full(target_position=target_point)
 initial_position = np.array(initial_position)
 initial_position = initial_position[1:]

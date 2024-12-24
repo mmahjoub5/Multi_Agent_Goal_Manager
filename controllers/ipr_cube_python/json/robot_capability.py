@@ -87,5 +87,25 @@ robot_capability_json = {
       "object_weight": "2kg"
     }
   },
-  "task_controller_type": "autogen"
+  "task_controller_type": "autogen",
+  "possible_tasks": {
+                    "robot_controls": [
+                        "getTouchSensor(self, index)", 
+                        "getMotorName(self, motorIndex:int)->str", 
+                        "simulationStep(self, stepsCount=1)",
+                        "motorPosition(self, motorIndex) ->float",
+                        "distanceSensorValue(self,sensorIndex) ->float",
+                        "objectDetectedInGripper(self)->bool",
+                        "setMotorPosition(self, motorIndex, position) ->None:",
+                        "moveToInitPosition(self)->None",
+                        "moveToPosition(self, motorIndex, position)->None",
+                        "setMotorVelocity(self, motorIndex, velocity)->None",
+                        "postitionReached( self, motorIndex, targetPostion)->bool",
+                        "openGripper(self)->None",
+                        "closeGripper(self)->None",
+                     ],
+                     "robot_computations": [
+                         "forward_kinematics(self, joint_angles) ->list | np.array",
+                         "inverse_kinematics_full(self, target_position, target_orientation=None, initial_angles=None) -> np.array",
+                     ]}
 }

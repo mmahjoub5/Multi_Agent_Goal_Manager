@@ -24,8 +24,7 @@ from time import sleep
 
 
 
-methods = [method for method, _ in inspect.getmembers(IKPY_WRAPPER, predicate=inspect.isfunction)]
-methods = ["move arm to", "set motor positon", "position reached", "grab object"] + methods
+
 rabbitmq_client = RabbitMQ_Client()
 
 
@@ -33,38 +32,38 @@ rabbitmq_client = RabbitMQ_Client()
 url = "http://127.0.0.1:8000"
 
 client = SYNC_APIClient(url)
-json = { "environment": 
-        {
-            "robotLinks": [1,2,3],
-            "goalPosition": [0,0,0],
-            "NumberOfRobots": 3,
-            "initialPositions": [0,10,1]
-        },
-        "tasks": methods,
-        "task_controller_type": "autogen", # autogen, oneLLM, TWOLLM
-        "robot_id": "0"
+json = {
+    "environment": {
+        "obstacles": [[]],
+        "Position": [0.0, 0.0, 0.0,0.0,0.0,0.0]
+    },
+    "robot_id": "robot_0",
+    "task_controller_type": "autogen"
 
 }
 
 def on_task_feedback_callback(ch, method, properties, body):
     print(f" [x] Received {body}")
     ch.basic_ack(delivery_tag=method.delivery_tag)
+
+    json["environment"]["Position"] = [coord + 0.12 for coord in json["environment"]["Position"]]
+
     rabbitmq_client.send_message("task_request", message=json)
 
 # env = TaskRequest(**json)
 
 consumer_client = RabbitMQConsumerManager(rabbitmq_client=rabbitmq_client)
-
+taskRequest = TaskRequest(**json)
 
 goalRequest = SetGoalRequest(**robot_capability_json)
-print(goalRequest)
+print(taskRequest)
 response = client.post("/setGoal", data=goalRequest.model_dump())
 
-rabbitmq_client.send_message("task_request", message=json)
+rabbitmq_client.send_message("task_request", message=taskRequest.model_dump())
 consumer_client.start_consumer("task_feedback", callback=on_task_feedback_callback)
 
 while True:
-    sleep(1)
+    sleep(15)
     
 
 

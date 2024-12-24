@@ -1,6 +1,7 @@
 from fastapi import FastAPI, BackgroundTasks
 from typing import Dict
 from ipr_worlds.backend.app.configs.auto_gen import autogen_agent_config
+from ipr_worlds.backend.app.configs.config import ROBOTTABLE
 import pdb
 from ipr_worlds.shared.models import TaskRequest, TaskResponse, SetGoalRequest, SetGoalResponse, Enviroment
 from ipr_worlds.backend.app.chains import one_llm_chain, two_llm_chain, autogen_chain
@@ -12,7 +13,7 @@ from pydantic import ValidationError
 from ipr_worlds.backend.app.configs.config import rabbitmq_client
 from enum import Enum
 import threading
-
+from ipr_worlds.backend.app.domain.documents import RobotDocument
 # initialize app
 app = FastAPI()
 consumer_manager = RabbitMQConsumerManager(rabbitmq_client)
@@ -43,28 +44,48 @@ class TASK_CONTROLLER_TYPE(Enum):
     AUTOGEN = "autogen"
 
 def on_task_request_callback(ch, method, properties, body):
-    try:
-        packet = TaskRequest.model_validate_json(body.decode())
-    except ValidationError as e:
-        print(f"Error deserializing message: {e}")
-    except Exception as e:
-        print(f"Unexpected error during deserialization: {e}")
     ch.basic_ack(delivery_tag=method.delivery_tag)
-    prompt = templateManager(environment=packet.environment, tasks=packet.tasks)
-    task_controller_type = TASK_CONTROLLER_TYPE[packet.task_controller_type.upper()]
+    try:
+        decoded_message = body.decode()
+        message_data:dict = json.loads(decoded_message)
+        packet = TaskRequest(**message_data)
+    except json.JSONDecodeError:
+        print("Error: Invalid JSON format")
+        return None
+        
+    except ValidationError as e:
+        raise ValidationError(f"Error deserializing message: {e}")
+        
+    except Exception as e:
+        raise RuntimeError(f"Unexpected error during deserialization: {e}")
+       
     
-    if task_controller_type == TASK_CONTROLLER_TYPE.ONE_LLM:
-        response:TaskResponse = one_llm_chain(prompt)
-    elif task_controller_type == TASK_CONTROLLER_TYPE.TWO_LLM:
-        response:TaskResponse = two_llm_chain(prompt)
-    elif task_controller_type == TASK_CONTROLLER_TYPE.AUTOGEN:
-        response:TaskResponse = autogen_chain(prompt)
-    else:
-        raise ValueError(f"Unknown TASK_CONTROLLER_TYPE type: {packet.task_controller_type}")
+    
+    robotDoc:RobotDocument = ROBOTTABLE[packet.robot_id]
+    if robotDoc is None:
+        raise KeyError("robot id not in robot table, so end point was never called")
+    
+    prompt = templateManager(environment=packet.environment, 
+                            tasks=robotDoc.possible_tasks,
+                            robot_capabilities=robotDoc.robot_capabilities,
+                            robot_type=robotDoc.robot_type,
+                            goal=robotDoc.goal_specifications)
+    
+    task_controller_type = TASK_CONTROLLER_TYPE[packet.task_controller_type.upper()]
+    match task_controller_type:
+        case TASK_CONTROLLER_TYPE.ONE_LLM:
+            response:TaskResponse = one_llm_chain(prompt)
+        case TASK_CONTROLLER_TYPE.TWO_LLM:
+            response:TaskResponse = two_llm_chain(prompt)
+        case TASK_CONTROLLER_TYPE.AUTOGEN:
+            response:TaskResponse = autogen_chain(prompt)
+        case _:
+            raise ValueError(f"Unknown TASK_CONTROLLER_TYPE type: {packet.task_controller_type}")
     
     if response is not None:
-        rabbitmq_client.send_message("task_feedback", message={"response":response.model_dump_json()})
-
+        rabbitmq_client.send_message("task_feedback", message={"response":response.model_dump()})
+    else:
+        raise SystemError("GPT CONTROLLER RESPONSE IS NONE")
 
 
     
@@ -72,6 +93,13 @@ def on_task_request_callback(ch, method, properties, body):
 def setGoal_and_startQs(packet:SetGoalRequest):
     # get robot meta data 
 
+    robotDoc = RobotDocument.get_or_create_from_request(request=packet)
+
+    robot_id = packet.robot_locations[0].robot_id 
+    # Combine robot_controls and robot_computations into one list
+    
+    ROBOTTABLE[robot_id] = robotDoc
+    
 
     # TODO: update robot meta data and id to DB
     consumer_manager.start_consumer("task_request", callback=on_task_request_callback)
@@ -100,21 +128,21 @@ def submit_task(task: Dict, background_task: BackgroundTasks):
 
 
 
-@app.post("/taskPlaningTwoGPT", response_model=TaskResponse)
-def get_task_one_gpt(packet:TaskRequest):
+# @app.post("/taskPlaningTwoGPT", response_model=TaskResponse)
+# def get_task_one_gpt(packet:TaskRequest):
     
-    # TODO: do one chat gpt call to create a prompt based on pose and enviroment and maybe history of certain examples 
-    prompt = templateManager(enviroment=packet.environment, tasks=packet.tasks) 
-    response = two_llm_chain(prompt)
+#     # TODO: do one chat gpt call to create a prompt based on pose and enviroment and maybe history of certain examples 
+#     prompt = templateManager(enviroment=packet.environment, tasks=packet.tasks) 
+#     response = two_llm_chain(prompt)
 
-    return response.model_dump()
+#     return response.model_dump()
 
 
-@app.post("/taskPlaningOneGPT4", response_model=TaskResponse)
-def get_task_two_gpt(packet:TaskRequest):
-    prompt = templateManager(environment=packet.environment, tasks=packet.tasks)
-    response = one_llm_chain(prompt)
-    return response.model_dump()
+# @app.post("/taskPlaningOneGPT4", response_model=TaskResponse)
+# def get_task_two_gpt(packet:TaskRequest):
+#     prompt = templateManager(environment=packet.environment, tasks=packet.tasks)
+#     response = one_llm_chain(prompt)
+#     return response.model_dump()
    
     
 # @app.post("/autogen", response_model=TaskResponse)

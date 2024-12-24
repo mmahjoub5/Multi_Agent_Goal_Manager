@@ -33,8 +33,25 @@ class RobotDocument(NoSQLBaseDocument):
     environment_constraints: Optional[Dict[str, str]] = {}  # Constraints for the environment (e.g., obstacles, boundaries)
     goal_specifications: GoalSpecifications  # Specifications for the goal of the task
     task_controller_type: str # autogen, oneLLM, TWOLLM
+    possible_tasks: PossibleTasks
 
     @classmethod
     def from_request(cls, request: SetGoalRequest) -> "RobotDocument":
-        return cls(**request.dict())
+        return cls(**request.model_dump())
+    
+    @classmethod
+    def get_or_create_from_request(cls, request: SetGoalRequest) -> "RobotDocument":
+        return cls.get_or_create(filter_doc=request.model_dump(exclude_unset=True))
 
+class TaskDocument(NoSQLBaseDocument):
+    class Settings:
+        name = 'TaskHistory'
+    task_id: str
+    task_description: str
+    robot_id : List[str]
+    timestamp: str
+    status: str  #"in-progress, complete, failed"
+    goals:GoalSpecifications
+   
+class ChatHistoryDocument(NoSQLBaseDocument):
+    pass

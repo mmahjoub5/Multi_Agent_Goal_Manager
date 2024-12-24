@@ -1,7 +1,7 @@
 from ipr_worlds.backend.app.LLMClient import GPTChatCompletionClient, GPTCompletionClient, GeminiClient, AutoGenLLMClient
 from ipr_worlds.backend.app.helpers import InMemoryResponseManager
 import opik
-from ipr_worlds.backend.app.helpers import InMemoryResponseManager
+from ipr_worlds.backend.app.helpers import InMemoryResponseManager, Autogen_InMemoryResponseManager
 from ipr_worlds.shared.models import TaskRequest, TaskResponse
 from ipr_worlds.backend.app.configs.config import *
 from ipr_worlds.backend.app.configs.auto_gen import autogen_agent_config
@@ -93,14 +93,12 @@ def one_llm_chain(prompt:str) -> TaskResponse:
 
 @opik.track
 def autogen_chain(prompt:str) -> TaskResponse:
-    response_manager = InMemoryResponseManager()
+    response_manager = Autogen_InMemoryResponseManager()
     autogen_client:AutoGenLLMClient = AutoGenLLMClient(config=autogen_agent_config, response_manager=response_manager, LLMConfig=LLM_Config)
-    autogen_client.call(message=prompt)
+    chat_result = autogen_client.call(message=prompt)
     
-    for agent in autogen_client.agents:
-        group_messages = autogen_client.manager.chat_messages_for_summary(agent=agent)
-        for i in group_messages:
-            autogen_client.add_memory(role=i["role"], content =i["content"])
-    
+    for i in chat_result.chat_history:
+        autogen_client.add_memory(name = i['name'], content=i['content'])
+   
     reponse = TaskResponse(message=autogen_client.get_history())
     return reponse

@@ -100,13 +100,13 @@ class IPR(Robot):
 
         return float('inf')
 
-    def objectDetectedInGripper(self):
+    def objectDetectedInGripper(self)->bool:
         valueCenter = self.distanceSensorValue(4)
         valueRight1 = self.distanceSensorValue(5)
         valueRight2 = self.distanceSensorValue(6)
         return (valueCenter + valueRight1 + valueRight2) > 80
     
-    def setMotorPosition(self, motorIndex, position):
+    def setMotorPosition(self, motorIndex, position) ->None:
         if motorIndex < 0 or motorIndex >= self.MOTOR_NUMBER:
             return
         
@@ -116,7 +116,7 @@ class IPR(Robot):
             print(f"setting motor: {motorIndex} position: {position}")
             return motor.setPosition(position)
     
-    def moveToInitPosition(self):
+    def moveToInitPosition(self)->None:
         for i in range(self.MOTOR_NUMBER):
             self.setMotorPosition(i, 0.0)
         
@@ -125,16 +125,16 @@ class IPR(Robot):
             while not self.postitionReached(i, 0.0) :
                 self.step(self.mTimeStep)
 
-    def moveToPosition(self, motorIndex, position):
+    def moveToPosition(self, motorIndex, position)->None:
         self.setMotorPosition(motorIndex, position=position)
         # check if positioned reached 
         while not self.postitionReached(motorIndex, position) :
             self.step(self.mTimeStep)
     
-    def setMotorVelocity(self, motorIndex, velocity):
+    def setMotorVelocity(self, motorIndex, velocity)->None:
         self.mMotors[motorIndex].setVelocity(velocity)
 
-    def postitionReached( self, motorIndex, targetPostion):
+    def postitionReached( self, motorIndex, targetPostion)->bool:
         if motorIndex <0  or motorIndex > self.MOTOR_NUMBER:
             print("THIS IS AN ERROR")
             return False
@@ -156,7 +156,7 @@ class IPR(Robot):
             return math.fabs(sensor.getValue() - targetPostion) <= self.POSITION_TOLERANCE
         return False
     
-    def openGripper(self, targetPosition=1.1):
+    def openGripper(self, targetPosition=1.1)->None:
         motorIndex = self.motorNameMap["gripper::right"]
         gripperMotor =  self.mMotors[motorIndex]
         gripperMotor.setPosition(targetPosition)
@@ -164,7 +164,7 @@ class IPR(Robot):
             print("opening gripper")
             self.step(self.mTimeStep)
    
-    def closeGripper(self):
+    def closeGripper(self)->None:
         gripperMotor = self.mMotors[self.motorNameMap["gripper::right"]]
         gripperMotor.setPosition(0.0)
 

@@ -24,7 +24,7 @@ class IKPY_WRAPPER:
         return transformation_matrix
 
 
-    def  inverse_kinematics_full(self, target_position, target_orientation=None, initial_angles=None):
+    def  inverse_kinematics_full(self, target_position, target_orientation=None, initial_angles=None) -> np.array:
         """
         Calculate the inverse kinematics to reach the target position and orientation.
         :param target_position: 3D position of the target [x, y, z].

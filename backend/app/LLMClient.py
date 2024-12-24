@@ -37,7 +37,7 @@ class LLMClientBase(ABC):
         pass
 
     def add_memory(self, **kwargs ) -> None:
-        self.response_manager.add_response(kwargs["role"], kwargs["content"])
+        self.response_manager.add_response(**kwargs)
 
     
     def get_history(self) -> LLMResponseManager:
@@ -180,9 +180,9 @@ class AutoGenAgentFactory:
             
             agents.append(agent)
         if len(agents) > 2:
-            groupChat = GroupChat(agents=agents, messages=[], max_round=4, allow_repeat_speaker=True)
+            groupChat = GroupChat(agents=agents, messages=[], max_round=6, allow_repeat_speaker=True)
         else:
-            groupChat = GroupChat(agents=agents, messages=[], max_round=4, allow_repeat_speaker=True, speaker_selection_method='round_robin')
+            groupChat = GroupChat(agents=agents, messages=[], max_round=6, allow_repeat_speaker=True, speaker_selection_method='round_robin')
         manager = GroupChatManager(groupchat=groupChat, llm_config={"config_list": self.llm_config})
         return manager, agents
     
@@ -192,7 +192,7 @@ class AutoGenAgentFactory:
                 name=name,
                 system_message= system_message,
                 llm_config={"config_list":  self.llm_config},
-                code_execution_config=kwargs.get("code_execution_config", None),  # Turn off code execution, by default it is off.
+                code_execution_config=kwargs.get("code_execution_config", False),  # Turn off code execution, by default it is off.
                 function_map= kwargs.get("function_map", None),  # No registered functions, by default it is None.
                 human_input_mode=kwargs["human_input_mode"],  # Never ask for human input.
                 max_consecutive_auto_reply = kwargs.get("max_consecutive_auto_reply", None),
@@ -212,7 +212,7 @@ class AutoGenAgentFactory:
                 name=name,
                 system_message= system_message,
                 llm_config={"config_list": self.llm_config},
-                code_execution_config=kwargs.get("code_execution_config", None),  # Turn off code execution, by default it is off.
+                code_execution_config=kwargs.get("code_execution_config", False),  # Turn off code execution, by default it is off.
                 function_map= kwargs.get("function_map", None),  # No registered functions, by default it is None.
                 human_input_mode=kwargs["human_input_mode"],  # Never ask for human input.
                 max_consecutive_auto_reply = kwargs.get("max_consecutive_auto_reply", None),
@@ -233,7 +233,7 @@ class AutoGenAgentFactory:
                 name=name,
                 system_message= system_message,
                 llm_config={"config_list": self.llm_config},
-                code_execution_config=kwargs.get("code_execution_config", None),  # Turn off code execution, by default it is off.
+                code_execution_config=kwargs.get("code_execution_config", False),  # Turn off code execution, by default it is off.
                 function_map= kwargs.get("function_map", None),  # No registered functions, by default it is None.
                 human_input_mode=kwargs["human_input_mode"],  # Never ask for human input.
                 max_consecutive_auto_reply = kwargs.get("max_consecutive_auto_reply", None),
@@ -261,8 +261,8 @@ class AutoGenLLMClient(LLMClientBase):
     def parse_response(self, message:str):
         pass
     def call(self, message:str, **kwargs):
-        self.agents[0].initiate_chat(self.manager, message=message)
-        pass
+        return self.agents[0].initiate_chat(self.manager, message=message)
+        
     
     
     def get_agent(self, index):
