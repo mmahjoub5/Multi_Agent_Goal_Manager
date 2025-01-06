@@ -21,8 +21,8 @@ This system:
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/yourusername/robotic-task-execution.git
-cd robotic-task-execution 
+git clone https://github.com/mmahjoub5/robotArm.git
+cd robotArm
 ```
 
 
