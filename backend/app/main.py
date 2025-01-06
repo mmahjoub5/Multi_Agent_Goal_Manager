@@ -14,9 +14,29 @@ from ipr_worlds.backend.app.configs.config import rabbitmq_client
 from enum import Enum
 import threading
 from ipr_worlds.backend.app.domain.documents import RobotDocument
+import re
 # initialize app
 app = FastAPI()
 consumer_manager = RabbitMQConsumerManager(rabbitmq_client)
+
+
+def extract_json_by_schema(raw_string) -> str:
+    # clean up json 
+    cleaned_response_text = raw_string.replace("\n", "").replace("\r", "").replace("'\'","")
+    cleaned_response_text = re.sub(r"#.*", "", cleaned_response_text)
+    cleaned_response_text = re.sub(r"/\*.*?\*/|//.*", "", cleaned_response_text, flags=re.DOTALL)
+    cleaned_response_text = cleaned_response_text.strip()
+
+    # Regex pattern for a JSON with known keys like "TASK", "TASK ID", and "TASK Parameters"
+    pattern = r"(\{.*?\"TASK\".*?\})"
+     # Search for the pattern in the input
+    match = re.search(pattern, cleaned_response_text, re.DOTALL)
+    if match:
+        return match.group(1)
+    else:
+        raise SystemError(f"Error: No JSON matching the schema found.{cleaned_response_text}" )
+
+
 
 '''
     EndPoint set by request to start set goal and connection to the high level controller
@@ -50,8 +70,7 @@ def on_task_request_callback(ch, method, properties, body):
         message_data:dict = json.loads(decoded_message)
         packet = TaskRequest(**message_data)
     except json.JSONDecodeError:
-        print("Error: Invalid JSON format")
-        return None
+        raise SystemError("Error: Invalid JSON format")
         
     except ValidationError as e:
         raise ValidationError(f"Error deserializing message: {e}")
@@ -63,27 +82,28 @@ def on_task_request_callback(ch, method, properties, body):
     
     robotDoc:RobotDocument = ROBOTTABLE[packet.robot_id]
     if robotDoc is None:
-        raise KeyError("robot id not in robot table, so end point was never called")
+        raise KeyError("robot id not in robot table, so end point /setGoal was never called")
     
     prompt = templateManager(environment=packet.environment, 
                             tasks=robotDoc.possible_tasks,
-                            robot_capabilities=robotDoc.robot_capabilities,
+                            robot_capabilities=robotDoc.robot_capabilities[0],
                             robot_type=robotDoc.robot_type,
                             goal=robotDoc.goal_specifications)
     
     task_controller_type = TASK_CONTROLLER_TYPE[packet.task_controller_type.upper()]
     match task_controller_type:
         case TASK_CONTROLLER_TYPE.ONE_LLM:
-            response:TaskResponse = one_llm_chain(prompt)
+            response:TaskResponse = one_llm_chain(prompt, packet.task_controller_model)
         case TASK_CONTROLLER_TYPE.TWO_LLM:
-            response:TaskResponse = two_llm_chain(prompt)
+            response:TaskResponse = two_llm_chain(prompt, packet.task_controller_model)
         case TASK_CONTROLLER_TYPE.AUTOGEN:
-            response:TaskResponse = autogen_chain(prompt)
+            response:TaskResponse = autogen_chain(prompt, packet.task_controller_model)
         case _:
             raise ValueError(f"Unknown TASK_CONTROLLER_TYPE type: {packet.task_controller_type}")
     
     if response is not None:
-        rabbitmq_client.send_message("task_feedback", message={"response":response.model_dump()})
+        tasks_for_client = response.message[-1]["content"]   
+        rabbitmq_client.send_message("task_feedback", message={"response":tasks_for_client})
     else:
         raise SystemError("GPT CONTROLLER RESPONSE IS NONE")
 
@@ -93,12 +113,12 @@ def on_task_request_callback(ch, method, properties, body):
 def setGoal_and_startQs(packet:SetGoalRequest):
     # get robot meta data 
 
-    robotDoc = RobotDocument.get_or_create_from_request(request=packet)
+    robot_doc = RobotDocument.get_or_create_from_request(request=packet)
 
     robot_id = packet.robot_locations[0].robot_id 
     # Combine robot_controls and robot_computations into one list
     
-    ROBOTTABLE[robot_id] = robotDoc
+    ROBOTTABLE[robot_id] = robot_doc
     
 
     # TODO: update robot meta data and id to DB

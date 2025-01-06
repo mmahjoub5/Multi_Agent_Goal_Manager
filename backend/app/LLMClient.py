@@ -1,22 +1,20 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field
+
 from ipr_worlds.backend.app.helpers import LLMResponseManager
-from typing_extensions import Annotated
+
 from dataclasses import dataclass
 from typing import List, Dict, AnyStr, Union
 import requests
 from dotenv import load_dotenv
-import os
-import pdb
-from enum import Enum
 
+from enum import Enum
 from abc import ABC, abstractmethod
 from google import genai
 from google.genai import types
-import pdb
-from autogen import ConversableAgent, AssistantAgent, UserProxyAgent, GroupChat, GroupChatManager
-
+from autogen import ConversableAgent, AssistantAgent, UserProxyAgent, GroupChat, GroupChatManager, register_function
+from ipr_worlds.shared.models import TaskResponse
+from ipr_worlds.backend.app.schema import task_request_schema
 class LLMClientBase(ABC):
     def __init__(self, api:str, base_url:str, response_manager:LLMResponseManager):
         self.api = api 
@@ -110,7 +108,12 @@ class GPTChatCompletionClient(AzureAIClient):
             "messages": messages,
             "max_tokens": max_tokens,
             "n": choices,
-            "temperature": temparture
+            "temperature": temparture,
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": task_request_schema
+            }
+
         }
 
     def call(self,**kwargs) -> Dict:
@@ -168,15 +171,16 @@ class AutoGenAgentFactory:
         agents = []
         for agent_config in config["agents"]:
             agent_type = self.AgentType[agent_config["type"].upper()]
-
-            if agent_type == self.AgentType.ASSISTANT:
-                agent = self.create_assistant_agent(**agent_config)
-            elif agent_type == self.AgentType.USER_PROXY:
-                agent = self.create_user_proxy_agent(**agent_config)
-            elif agent_type == self.AgentType.CONVERSABLE:
-                agent = self.create_conversable_agent(**agent_config)
-            else:
-                raise ValueError(f"Unknown agent type: {agent_config['type']}")
+            
+            match agent_type:
+                case self.AgentType.ASSISTANT:
+                    agent = self.create_assistant_agent(**agent_config)
+                case self.AgentType.USER_PROXY:
+                    agent = self.create_user_proxy_agent(**agent_config)
+                case self.AgentType.CONVERSABLE:
+                    agent = self.create_conversable_agent(**agent_config)
+                case  _:
+                    raise ValueError(f"Unknown agent type: {agent_config['type']}")
             
             agents.append(agent)
         if len(agents) > 2:
@@ -247,6 +251,8 @@ class AutoGenAgentFactory:
             print(f"An unexpected error occurred while creating assistant agent: {e}")
             raise
 
+
+
 class AutoGenLLMClient(LLMClientBase):
     def __init__(self, LLMConfig: Dict, response_manager, config:Dict):
         super().__init__(api=None, base_url=None, response_manager=response_manager)
@@ -262,7 +268,8 @@ class AutoGenLLMClient(LLMClientBase):
         pass
     def call(self, message:str, **kwargs):
         return self.agents[0].initiate_chat(self.manager, message=message)
-        
+    
+
     
     
     def get_agent(self, index):

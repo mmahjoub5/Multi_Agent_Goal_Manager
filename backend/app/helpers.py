@@ -3,7 +3,7 @@ from typing import Literal
 from typing import List, Dict, AnyStr
 from abc import ABC, abstractmethod
 from jinja2 import Environment, FileSystemLoader
-
+from ipr_worlds.shared.models import *
 class LLMResponseManager(ABC):
     """
         Add history from LLM to the manager.
@@ -70,26 +70,40 @@ class Autogen_InMemoryResponseManager(LLMResponseManager):
             return self.messages[index]
         else:
             raise IndexError("Response index out of range.")
+
+
+def format_robot_capabilities(robot_capabilities:RobotCapabilities):
+    pass
+
+
     
     
-def templateManager(environment,tasks, robot_type, robot_capabilities,goal,  **kwargs):
+    
+def templateManager(environment:Enviroment,tasks:List, robot_type:str, robot_capabilities:RobotCapabilities,goal:GoalSpecifications,  **kwargs):
     # load template 
     # Define the directory containing your templates
     template_dir = "ipr_worlds/backend/app/templates"  # Adjust this to your directory structure
     env = Environment(loader=FileSystemLoader(template_dir))
 
+
+    # Update the lists by appending index + string
+    updated_robot_tasks = [f"task name: {control}" for i, control in enumerate(tasks)]
+   
+
+    
     # Load the ChatGPT prompt template
     template = env.get_template("summarizeEnvironment.jinja2")
     # Define data for rendering
     data = {
         "position":environment.Position,
         "obstacles": environment.obstacles,
-        "tasks": tasks,
+        "tasks": updated_robot_tasks,
         "robot_type": robot_type,
-        "robot_capabilities": robot_capabilities,
+        "robot_capabilities": robot_capabilities.model_dump(),
         "example_one": kwargs.get("example_one"),
         "example_two": kwargs.get("example_two"),
-        "goal": goal
+        "goal": goal.model_dump(),
+        **kwargs
     }
 
     prompt = template.render(data)

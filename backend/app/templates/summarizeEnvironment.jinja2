@@ -1,53 +1,76 @@
-Control Expert is tasked with generating optimized tasks for a {{robot_type}}. 
-To reach goal {{goal}}
-
+Control Expert is tasked with generating optimized tasks for a {{ robot_type }}.
+To reach goal 
 
 The environment variables include:
 
-Below we have listed examples of enviroment input to the model, and the succesful generated tasks
-
-Pick up and object at location  [x,y,z]
-
-1. get end effector position at init 
-2. calc inverse kinematics to reach final position, will have values for all the joints
-3. set upper arm index to moving position
-4. set all other motors to position
-5. loop and step until all motors in final position
-6.lower arm, but moving upper arm motor 
-7. close gripper (should not be able to grap object)
+Below we have listed examples of environment input to the model, and the successful generated tasks.
 
 
-{{example_one}}
-
-{{example_two}}
+{{ example_one }}
+{{ example_two }}
 
 Job for Control Expert:
 
-1. Based on the current enviroment
+1. Based on the current environment
+   Joint positions: {{ position }}
+   Obstacle distances: {{ obstacles }}
 
-joint positions:
-{{ position }}
+2. Robot capabilities:
+   - Payload capacity: {{ robot_capabilities['payload_capacity'] }}
+   - Max speed: {{ robot_capabilities['max_speed'] }}
+   - Sensors: {{ robot_capabilities['sensors'] | join(', ') }}
+   - Other features: {{ robot_capabilities['other_features'] | join(', ') }}
 
-objstacke distances: 
-{{obstacles}}
+3. Joints:
+   {% for joint in robot_capabilities['joints'] %}
+   - {{ joint['name'] }} ({{ joint['type'] }})
+     - Bounds: {{ joint['bounds'] }}
+     - Origin translation: {{ joint['origin_translation'] }}
+     - Rotation: {{ joint['rotation'] }}
+   {% endfor %}
 
+4. Create a detailed set of tasks that the robotic arm can perform with the list of tasks below:
+   - Task ID & Task Description: 
+   {% for task in tasks %}
+   - {{ task }}
+   {% endfor %}
 
+5. Goal Specifications:
+    - Goal Task Type: {{ goal['task_type'] }}
+    - Target Position: {{goal['target_position']}}
+    - additional_parameters: {{goal['additional_parameters']}}
 
-and the robot capabilities 
-{{robot_capabilities}}
+6. Provide Response with JSON schema, result should be less than 5 total steps
+Please provide a JSON response in the following format:
+{
+  "TASK": [
+    {
+      "name": "string",  # A unique task identifier
+      "parameters": ["string", "string"]  # A list of task parameters (strings)
+      "pass_returned_value_from": string # name of task , returned value from is if need to input output of a previous task
+    }
+  ]
+}
 
+Example:
 
-2. create a detailed set of tasks that the robotic arm can perform. Each task should be actionable, realistic, and take into account the constraints and capabilities of the arm. 
-3. Focus on efficiency, collision avoidance, and the use of all six degrees of freedom when possible. 
-4. Ensure the tasks are described clearly and concisely.
+Pick up object at [1,3,4]
 
-The list of avaiable tasks
-
-{{ tasks }}
-The format I need you ask is to input to the next model is to in this model
-
-
-
-
-
-
+  "TASK": [
+    {
+      "name": "calculate_inverse_kinematics",  # A unique task identifier
+      "parameters": ["[1,3,4]"]  # A list of task parameters (strings)
+      "pass_returned_value_from": ""
+    },
+     {
+      "name": "move_all_joints_to_init",  # A unique task identifier
+      "parameters": [""]  # A list of task parameters (strings)
+      "pass_returned_value_from": "" # name of task
+    }
+     {
+      "name": "grab_object",  # A unique task identifier
+      "parameters": []  # A list of task parameters (strings)
+      "pass_returned_value_from": "calculate_inverse_kinematics" # name of task
+    },
+    
+  ]

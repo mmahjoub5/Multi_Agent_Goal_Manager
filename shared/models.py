@@ -9,7 +9,8 @@ class Enviroment(BaseModel):
 class TaskRequest(BaseModel):
     environment:Enviroment  # Details of the environment (e.g., objects, obstacles)
     robot_id: str
-    task_controller_type: str # autogen, oneLLM, TWOLLM
+    task_controller_type: str # 
+    task_controller_model: str 
 
 
 
@@ -46,9 +47,7 @@ class RobotLocation(BaseModel):
     robot_id: str
     position: List[float]  # Example: [x, y, z] coordinates of the robot
 
-class PossibleTasks(BaseModel):
-    robot_controls:List
-    robot_computations:List
+
 
 # Main data model for the request body
 class SetGoalRequest(BaseModel):
@@ -61,7 +60,7 @@ class SetGoalRequest(BaseModel):
     environment_constraints: Optional[Dict[str, str]] = {}  # Constraints for the environment (e.g., obstacles, boundaries)
     goal_specifications: GoalSpecifications  # Specifications for the goal of the task
     task_controller_type: str # autogen, oneLLM, TWOLLM
-    possible_tasks:PossibleTasks
+    possible_tasks:List[Dict]
 
 class SetGoalResponse(BaseModel):
     topicNames: List[str]

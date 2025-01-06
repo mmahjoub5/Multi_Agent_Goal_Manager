@@ -88,24 +88,63 @@ robot_capability_json = {
     }
   },
   "task_controller_type": "autogen",
-  "possible_tasks": {
-                    "robot_controls": [
-                        "getTouchSensor(self, index)", 
-                        "getMotorName(self, motorIndex:int)->str", 
-                        "simulationStep(self, stepsCount=1)",
-                        "motorPosition(self, motorIndex) ->float",
-                        "distanceSensorValue(self,sensorIndex) ->float",
-                        "objectDetectedInGripper(self)->bool",
-                        "setMotorPosition(self, motorIndex, position) ->None:",
-                        "moveToInitPosition(self)->None",
-                        "moveToPosition(self, motorIndex, position)->None",
-                        "setMotorVelocity(self, motorIndex, velocity)->None",
-                        "postitionReached( self, motorIndex, targetPostion)->bool",
-                        "openGripper(self)->None",
-                        "closeGripper(self)->None",
-                     ],
-                     "robot_computations": [
-                         "forward_kinematics(self, joint_angles) ->list | np.array",
-                         "inverse_kinematics_full(self, target_position, target_orientation=None, initial_angles=None) -> np.array",
-                     ]}
+  "possible_tasks": 
+                   [
+                        {
+                            "task_name": "move_base_joint_to",
+                            "parameters": "[value: float (in radians)]",
+                            "description": "Moves the robot's base joint to the specified position in radians. The value parameter is a float representing the position of the base joint in radians."
+                        },
+                        {
+                            "task_name": "move_uppera_arm_to",
+                            "parameters": "[value: float (in radians)]",
+                            "description": "Moves the robot's upper arm joint to the specified position in radians. The value parameter is a float representing the position of the upper arm joint in radians."
+                        },
+                        {
+                            "task_name": "move_fore_arm_to",
+                            "parameters": ["value: float (in radians)"],
+                            "description": "Moves the robot's forearm joint to the specified position in radians. The value parameter is a float representing the position of the forearm joint in radians."
+                        },
+                        {
+                            "task_name": "move_uppera_arm_to",
+                            "parameters": ["value: float (in radians)"],
+                            "description": "Moves the robot's upper arm joint to the specified position in radians. The value parameter is a float representing the position of the upper arm joint in radians."
+                        },
+                        {
+                            "task_name": "move_rotational_wrist_to",
+                            "parameters": ["value: float (in radians)"],
+                            "description": "Moves the robot's rotational wrist joint to the specified position in radians. The value parameter is a float representing the position of the rotational wrist joint in radians."
+                        },
+                        {
+                            "task_name": "move_gripper_right_to",
+                            "parameters": ["value: float (in radians)"],
+                            "description": "Moves the robot's gripper to the specified position in radians. The value parameter is a float representing the position of the gripper in radians."
+                        },
+                        {
+                          "task_name": "move_all_joints_to_init",
+                          "parameters": "[]",
+                          "description": "Moves all the robot joints to their initial position. No parameters are required."
+                        },
+                        {
+                            "task_name": "grab_object",
+                            "parameters": "[grab_position: list[float] (in radians)]",
+                            "description": "Instructs the robot to grab an object at the specified position. The grab_position parameter is a list of 6 floats specficing the joint positions in radians"
+                        },
+                        {
+                            "task_name": "drop_object",
+                            "parameters": ["drop_position: list[float] (in radians)"],
+                            "description": "Instructs the robot to grab an object at the specified position. The drop_position parameter is a list of 6 floats specficing the joint positions in radians"
+                        },
+                        {
+                            "task_name": "calculate_forward_kinematics",
+                            "parameters": ["joint_angles: list[float] (in radians)"],
+                            "description": "Calculates the forward kinematics for the robot based on the given joint angles. The joint_angles parameter is a list of floats representing the joint angles of the robot in radians."
+                        },
+                        {
+                          "task_name": "calculate_inverse_kinematics",
+                          "parameters": "[ target_position: list[float] (in meters),  // target position [x, y, z] target_orientation: list[float] (in radians), initial_angles: list[float] (in radians)  // initial joint angles]",
+                          "description": "Calculates the inverse kinematics of the robot based on the target position (in meters), orientation (in radians), and initial angles (in radians). Function returns position for all motors."
+                        }
+                     ]
+                    
 }

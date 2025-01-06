@@ -5,8 +5,16 @@ from ipr_worlds.backend.app.helpers import InMemoryResponseManager, Autogen_InMe
 from ipr_worlds.shared.models import TaskRequest, TaskResponse
 from ipr_worlds.backend.app.configs.config import *
 from ipr_worlds.backend.app.configs.auto_gen import autogen_agent_config
-from ipr_worlds.backend.app import LLM_Config
 from ipr_worlds.backend.app.templates import example_strings
+from typing import Dict
+from ipr_worlds.backend.app.configs.config import rabbitmq_client
+
+def send_task_to_low_level_controller(task:Dict):
+    
+    rabbitmq_client.send_message("task_feedback", message={"response":task})
+    
+
+
 ''''
     Function taks in the enviroment from client and a end goal from client robot
     CHAIN is posted to OPIK to log the input and the output
@@ -15,15 +23,14 @@ from ipr_worlds.backend.app.templates import example_strings
 
 '''
 @opik.track
-def two_llm_chain(prompt:str) -> TaskResponse:
+def two_llm_chain(prompt:str, deployment_name:str) -> TaskResponse:
     response_manager = InMemoryResponseManager()
     
+    if deployment_name not in API_TABLE:
+        raise ValueError(f"Deployment name {deployment_name} not found in API_TABLE.")
+    api_config:API_CONFIG = API_TABLE[deployment_name]
 
-    completion_client = GPTCompletionClient(OPENAI_KEY_COMPLETION, 
-                                        ENDPOINT_COMPLETION, 
-                                        api_version=COMPLETION_VERSION, 
-                                        deployment_name=COMPLETION_DEPLOYMENT_NAME,
-                                        response_manager=response_manager)
+    completion_client = GPTCompletionClient(**api_config, response_manager=response_manager)
     
     updated_prompt = completion_client.call(prompt=prompt)
     updated_prompt = completion_client.parse_response(updated_prompt)
@@ -41,12 +48,9 @@ def two_llm_chain(prompt:str) -> TaskResponse:
             }
         ]
     
+    
 
-    chat_client = GPTChatCompletionClient(api=OPENAI_KEY_CHAT,
-                                         base_url=ENDPOINT_CHAT,
-                                         api_version=CHAT_VERSION,
-                                         deployment_name=CHAT_DEPLOYMENT_NAME,
-                                         response_manager=response_manager)
+    chat_client = GPTChatCompletionClient(response_manager=response_manager,**api_config )
 
     for i in messages:
         chat_client.add_memory(role=i["role"], content = i["content"])
@@ -63,7 +67,7 @@ def two_llm_chain(prompt:str) -> TaskResponse:
 
 
 @opik.track
-def one_llm_chain(prompt:str) -> TaskResponse:
+def one_llm_chain(prompt:str, deployment_name:str) -> TaskResponse:
    # TODO: pass the prompt to another gpt call to create the tasks based on the list of possible tasks 
     messages = [
             {
@@ -76,11 +80,11 @@ def one_llm_chain(prompt:str) -> TaskResponse:
             }
         ]
     response_manager = InMemoryResponseManager()
-    chat_client = GPTChatCompletionClient(api=OPENAI_KEY_CHAT,
-                                         base_url=ENDPOINT_CHAT,
-                                         api_version=CHAT_VERSION,
-                                         deployment_name=CHAT_DEPLOYMENT_NAME,
-                                         response_manager=response_manager)
+    if deployment_name not in API_TABLE:
+        raise ValueError(f"Deployment name {deployment_name} not found in API_TABLE.")
+    api_config = API_TABLE[deployment_name]
+
+    chat_client = GPTChatCompletionClient(response_manager=response_manager, **api_config.model_dump())
     chat_response = chat_client.call(messages=messages)
     msgs = chat_client.parse_response(chat_response)
     
@@ -92,8 +96,20 @@ def one_llm_chain(prompt:str) -> TaskResponse:
     return response
 
 @opik.track
-def autogen_chain(prompt:str) -> TaskResponse:
+def autogen_chain(prompt:str, deployment_name:str) -> TaskResponse:
     response_manager = Autogen_InMemoryResponseManager()
+    if deployment_name not in API_TABLE:
+        raise ValueError(f"Deployment name {deployment_name} not found in API_TABLE.")
+    api_config:API_CONFIG = API_TABLE[deployment_name]
+    LLM_Config = [
+        {
+            "model": api_config.deployment_name,
+            "api_type": "azure",
+            "api_key": api_config.api,
+            "base_url": api_config.base_url,
+            "api_version": api_config.api_version,
+        }
+    ]
     autogen_client:AutoGenLLMClient = AutoGenLLMClient(config=autogen_agent_config, response_manager=response_manager, LLMConfig=LLM_Config)
     chat_result = autogen_client.call(message=prompt)
     

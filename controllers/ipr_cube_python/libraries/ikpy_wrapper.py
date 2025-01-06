@@ -5,7 +5,7 @@ import ikpy.utils.plot as plot_utils
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from IPython import display
+
 
 class IKPY_WRAPPER:
     def __init__(self, urdf= None):
@@ -50,7 +50,7 @@ class IKPY_WRAPPER:
         ik = self.robot.inverse_kinematics(target_position)
         ik = self.robot.inverse_kinematics(target_position, target_orientation, initial_position=ik, orientation_mode='all')
 
-        
+        print(ik)
         
 
         return ik

@@ -53,7 +53,7 @@ class IPR(Robot):
             self.mMotors.append(motor)
             assert motor is not None
             
-            print(self.getMotorName(i))
+            #print(self.getMotorName(i))
 
             positionSensor = motor.getPositionSensor()  # Get position sensor from motor, floating-point
             positionSensor.enable(self.mTimeStep)  # Enable position sensor
@@ -61,7 +61,7 @@ class IPR(Robot):
 
         # Initialize TouchSensors
         for i in range(self.TOUCH_SENSOR_NUMBER):
-            print(f'ts{i}')
+            #print(f'ts{i}')
             touchSensor = self.getDevice(f'ts{i}')
             assert touchSensor is not None
             touchSensor.enable(self.mTimeStep)
@@ -69,7 +69,8 @@ class IPR(Robot):
 
     
     def getTouchSensor(self, index):
-        print(self.mTouchSensors[index].getValue())
+        pass
+        #print(self.mTouchSensors[index].getValue())
     
     def getMotorName(self, motorIndex:int)->str:
         return self.motorName[motorIndex]
@@ -106,53 +107,54 @@ class IPR(Robot):
         valueRight2 = self.distanceSensorValue(6)
         return (valueCenter + valueRight1 + valueRight2) > 80
     
-    def setMotorPosition(self, motorIndex, position) ->None:
+    def _setMotorPosition(self, motorIndex, position) ->None:
         if motorIndex < 0 or motorIndex >= self.MOTOR_NUMBER:
             return
         
         motor = self.mMotors[motorIndex]
         
         if isinstance(motor, Motor) and motor is not None:
-            print(f"setting motor: {motorIndex} position: {position}")
+            #print(f"setting motor: {motorIndex} position: {position}")
             return motor.setPosition(position)
     
     def moveToInitPosition(self)->None:
         for i in range(self.MOTOR_NUMBER):
-            self.setMotorPosition(i, 0.0)
+            self._setMotorPosition(i, 0.0)
         
         # check if positioned reached 
         for i in range(self.MOTOR_NUMBER):
-            while not self.postitionReached(i, 0.0) :
+            while not self._postitionReached(i, 0.0) :
                 self.step(self.mTimeStep)
 
     def moveToPosition(self, motorIndex, position)->None:
-        self.setMotorPosition(motorIndex, position=position)
+        self._setMotorPosition(motorIndex, position=position)
         # check if positioned reached 
-        while not self.postitionReached(motorIndex, position) :
+        while not self._postitionReached(motorIndex, position) :
             self.step(self.mTimeStep)
     
-    def setMotorVelocity(self, motorIndex, velocity)->None:
+    def _setMotorVelocity(self, motorIndex, velocity)->None:
         self.mMotors[motorIndex].setVelocity(velocity)
 
-    def postitionReached( self, motorIndex, targetPostion)->bool:
+    def _postitionReached( self, motorIndex, targetPostion)->bool:
         if motorIndex <0  or motorIndex > self.MOTOR_NUMBER:
-            print("THIS IS AN ERROR")
+            #print("THIS IS AN ERROR")
             return False
-        #print(f'checking position of motor:  {self.motorName[motorIndex]}')
+        ##print(f'checking position of motor:  {self.motorName[motorIndex]}')
         sensor = self.mPositionSensors[motorIndex]
-        #print("sensor position:  ", sensor.getValue())
-        #print(math.fabs(sensor.getValue() - targetPostion) <= self.POSITION_TOLERANCE)
+        ##print("sensor position:  ", sensor.getValue())
+        ##print(math.fabs(sensor.getValue() - targetPostion) <= self.POSITION_TOLERANCE)
 
-        print("----------TOUCH-------------")
-        for i in range(self.TOUCH_SENSOR_NUMBER):
-            self.getTouchSensor(i)
-        print("----------DISTANCE-------------")
-        for i in range(self.DISTANCE_SENSOR_NUMBER):
-            print(self.mDistanceSensors[i].getValue())
+        # #print("----------TOUCH-------------")
+        # for i in range(self.TOUCH_SENSOR_NUMBER):
+        #     self.getTouchSensor(i)
+        # #print("----------DISTANCE-------------")
+        # for i in range(self.DISTANCE_SENSOR_NUMBER):
+
+        #     #print(self.mDistanceSensors[i].getValue())
 
 
         if sensor is not None:
-            print(motorIndex, " : ", math.fabs(sensor.getValue()), "  : ", targetPostion)
+            #print(motorIndex, " : ", math.fabs(sensor.getValue()), "  : ", targetPostion)
             return math.fabs(sensor.getValue() - targetPostion) <= self.POSITION_TOLERANCE
         return False
     
@@ -160,8 +162,8 @@ class IPR(Robot):
         motorIndex = self.motorNameMap["gripper::right"]
         gripperMotor =  self.mMotors[motorIndex]
         gripperMotor.setPosition(targetPosition)
-        while not self.postitionReached(motorIndex=motorIndex, targetPostion=targetPosition):
-            print("opening gripper")
+        while not self._postitionReached(motorIndex=motorIndex, targetPostion=targetPosition):
+            #print("opening gripper")
             self.step(self.mTimeStep)
    
     def closeGripper(self)->None:
@@ -178,7 +180,7 @@ class IPR(Robot):
             if math.fabs(currentGripperPosition - previousGripperPosition) <= self.POSITION_TOLERANCE:
                 break
             previousGripperPosition = currentGripperPosition
-            print("closing gripper")
+            #print("closing gripper")
             self.step(self.mTimeStep)
 
     def getMotorPosition(self, motorIndex):
@@ -192,7 +194,7 @@ class IPR(Robot):
         for i in range(self.MOTOR_NUMBER):
             if i == upperArmIndex:
                 self.mMotors[i].setPosition(self.UPPER_ARM_MOTOR_TRANSITION_POSITION)
-                print(grabPosition[i])
+                #print(grabPosition[i])
             else:
                 self.mMotors[i].setPosition(grabPosition[i])
             
@@ -204,28 +206,28 @@ class IPR(Robot):
             else:
                 position = grabPosition[i]
             
-            while not self.postitionReached(i, position):
+            while not self._postitionReached(i, position):
 
                 self.step(self.mTimeStep)
-                #print("here", i)
-        print("rotate base and set gripper complete")
+                ##print("here", i)
+        #print("rotate base and set gripper complete")
         
         # lower arm
         self.mMotors[upperArmIndex].setPosition(grabPosition[upperArmIndex])
 
-        while not self.postitionReached(upperArmIndex, grabPosition[upperArmIndex]):
+        while not self._postitionReached(upperArmIndex, grabPosition[upperArmIndex]):
             self.step(self.mTimeStep)
         
         while not self.objectDetectedInGripper():
             self.step(self.mTimeStep)
 
-        print("lower arm complete")
+        #print("lower arm complete")
         self.closeGripper()
 
     def dropObject(self, dropPosition:list):
         upperArmIndex = self.motorNameMap["upperarm"]
         self.mMotors[upperArmIndex].setPosition(self.UPPER_ARM_MOTOR_TRANSITION_POSITION)
-        while not self.postitionReached(upperArmIndex, self.UPPER_ARM_MOTOR_TRANSITION_POSITION):
+        while not self._postitionReached(upperArmIndex, self.UPPER_ARM_MOTOR_TRANSITION_POSITION):
             self.step(self.mTimeStep)
         
 
@@ -241,22 +243,22 @@ class IPR(Robot):
 
         
 
-        while not self.postitionReached(baseMotorIndex, dropPosition[baseMotorIndex]):
+        while not self._postitionReached(baseMotorIndex, dropPosition[baseMotorIndex]):
             self.step(self.mTimeStep)
-        print("rotate base complete")
+        #print("rotate base complete")
         
         
         for i in range(self.motorNameMap["forearm"], self.motorNameMap["gripper::right"]):
-            while not self.postitionReached(i, dropPosition[i]):
+            while not self._postitionReached(i, dropPosition[i]):
                 self.step(self.mTimeStep)
         
-        print("forearm  & gripper::right complete")
+        #print("forearm  & gripper::right complete")
 
         # lower arm
         self.mMotors[upperArmIndex].setPosition(dropPosition[upperArmIndex])
-        while not self.postitionReached(upperArmIndex, dropPosition[upperArmIndex]):
+        while not self._postitionReached(upperArmIndex, dropPosition[upperArmIndex]):
             self.step(self.mTimeStep)
-        print("lower arm complete")
+        #print("lower arm complete")
 
         self.openGripper()
         

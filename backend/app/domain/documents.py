@@ -33,7 +33,7 @@ class RobotDocument(NoSQLBaseDocument):
     environment_constraints: Optional[Dict[str, str]] = {}  # Constraints for the environment (e.g., obstacles, boundaries)
     goal_specifications: GoalSpecifications  # Specifications for the goal of the task
     task_controller_type: str # autogen, oneLLM, TWOLLM
-    possible_tasks: PossibleTasks
+    possible_tasks: List[Dict]
 
     @classmethod
     def from_request(cls, request: SetGoalRequest) -> "RobotDocument":
