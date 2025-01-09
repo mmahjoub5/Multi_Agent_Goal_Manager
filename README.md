@@ -55,7 +55,7 @@ Install Webots from here [WEBOTS DOWNLOAD](https://cyberbotics.com/doc/guide/ins
 ### Run Server 
 
 ```bash
-uvicorn robotArm.backend.app.main:app --reload
+uvicorn backend.app.main:app --reload
 ```
 
 
