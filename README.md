@@ -29,10 +29,8 @@ cd robotArm
 
 ### 2. Install Requirements
 ```bash
-python3 -m venv venv
-source venv/bin/activate  # macOS/Linux
-venv\Scripts\activate     # Windows
-pip install -r req.txt
+pip install poetry
+poetry install --no-root
 ```
 
 
@@ -48,14 +46,18 @@ docker run -d -p 27017:27017 mongo
 
 ### 4. Install Webots 
 Install Webots from here [WEBOTS DOWNLOAD](https://cyberbotics.com/doc/guide/installation-procedure), and make sure it’s added to your system PATH.
-
+Get python path from CLI with
+``` bash
+poetry run which python
+```
+Add python path in webots @Webots->Preferences->Python Command
 
 ## Usage
 
 ### Run Server 
 
 ```bash
-uvicorn backend.app.main:app --reload
+poetry run uvicorn backend.app.main:app --reload
 ```
 
 
