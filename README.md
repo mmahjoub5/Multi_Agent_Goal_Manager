@@ -32,7 +32,7 @@ cd robotArm
 python3 -m venv venv
 source venv/bin/activate  # macOS/Linux
 venv\Scripts\activate     # Windows
-pip install -r requirements.txt
+pip install -r req.txt
 ```
 
 
