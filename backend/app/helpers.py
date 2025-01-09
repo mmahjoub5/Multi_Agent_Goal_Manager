@@ -3,7 +3,8 @@ from typing import Literal
 from typing import List, Dict, AnyStr
 from abc import ABC, abstractmethod
 from jinja2 import Environment, FileSystemLoader
-from ipr_worlds.shared.models import *
+from  shared.models import *
+import os 
 class LLMResponseManager(ABC):
     """
         Add history from LLM to the manager.
@@ -76,13 +77,16 @@ def format_robot_capabilities(robot_capabilities:RobotCapabilities):
     pass
 
 
-    
-    
+
     
 def templateManager(environment:Enviroment,tasks:List, robot_type:str, robot_capabilities:RobotCapabilities,goal:GoalSpecifications,  **kwargs):
     # load template 
     # Define the directory containing your templates
-    template_dir = "ipr_worlds/backend/app/templates"  # Adjust this to your directory structure
+
+    # Adjust this to your directory structure
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    template_dir = os.path.join(script_dir, "templates")
+
     env = Environment(loader=FileSystemLoader(template_dir))
 
 

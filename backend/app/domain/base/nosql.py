@@ -2,8 +2,8 @@ import uuid
 from pydantic import UUID4, BaseModel, Field
 from pymongo import errors
 from typing import Generic, Type, TypeVar
-from ipr_worlds.backend.app.db.mongo import connection
-from ipr_worlds.backend.app.configs.config import DATABASE_NAME
+from  backend.app.db.mongo import connection
+from  backend.app.configs.config import DATABASE_NAME
 from abc import ABC
 
 

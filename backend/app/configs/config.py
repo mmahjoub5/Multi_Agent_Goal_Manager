@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 import os 
 import opik
-from ipr_worlds.shared.rabbitmq_manager import RabbitMQ_Client
+from  shared.rabbitmq_manager import RabbitMQ_Client
 from pydantic import BaseModel
 # Load environment variables at the start of your application
 load_dotenv()

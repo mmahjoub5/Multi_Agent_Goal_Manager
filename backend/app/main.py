@@ -1,19 +1,19 @@
 from fastapi import FastAPI, BackgroundTasks
 from typing import Dict
-from ipr_worlds.backend.app.configs.auto_gen import autogen_agent_config
-from ipr_worlds.backend.app.configs.config import ROBOTTABLE
+from  backend.app.configs.auto_gen import autogen_agent_config
+from  backend.app.configs.config import ROBOTTABLE
 import pdb
-from ipr_worlds.shared.models import TaskRequest, TaskResponse, SetGoalRequest, SetGoalResponse, Enviroment
-from ipr_worlds.backend.app.chains import one_llm_chain, two_llm_chain, autogen_chain
-from ipr_worlds.backend.app.helpers import templateManager
-from ipr_worlds.shared.rabbitmq_manager import RabbitMQConsumerManager
+from  shared.models import TaskRequest, TaskResponse, SetGoalRequest, SetGoalResponse, Enviroment
+from  backend.app.chains import one_llm_chain, two_llm_chain, autogen_chain
+from  backend.app.helpers import templateManager
+from  shared.rabbitmq_manager import RabbitMQConsumerManager
 from datetime import datetime
 import json
 from pydantic import ValidationError
-from ipr_worlds.backend.app.configs.config import rabbitmq_client
+from  backend.app.configs.config import rabbitmq_client
 from enum import Enum
 import threading
-from ipr_worlds.backend.app.domain.documents import RobotDocument
+from  backend.app.domain.documents import RobotDocument
 import re
 # initialize app
 app = FastAPI()

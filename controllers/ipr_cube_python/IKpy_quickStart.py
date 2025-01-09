@@ -6,11 +6,11 @@ import ikpy.utils.plot as plot_utils
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from ipr_worlds.controllers.ipr_cube_python.libraries.helpers import rotation_matrix_to_euler_angles
-from ipr_worlds.controllers.ipr_cube_python.libraries.api_client import SYNC_APIClient, ASYNC_APIClient
-from ipr_worlds.controllers.ipr_cube_python.json.robot_capability import robot_capability_json
-from ipr_worlds.shared.models import TaskRequest, SetGoalRequest
-from ipr_worlds.shared.rabbitmq_manager import RabbitMQ_Client, RabbitMQConsumerManager
+from  controllers.ipr_cube_python.libraries.helpers import rotation_matrix_to_euler_angles
+from  controllers.ipr_cube_python.libraries.api_client import SYNC_APIClient, ASYNC_APIClient
+from  controllers.ipr_cube_python.json.robot_capability import robot_capability_json
+from  shared.models import TaskRequest, SetGoalRequest
+from  shared.rabbitmq_manager import RabbitMQ_Client, RabbitMQConsumerManager
 from time import sleep
 # my_chain = ikpy.chain.Chain.from_urdf_file("controllers/ipr_cube_python/IprHd6m180.urdf")
 # urdf = "controllers/ipr_cube_python/IprHd6m180.urdf"

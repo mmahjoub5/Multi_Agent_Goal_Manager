@@ -1,7 +1,7 @@
 from typing import Literal
 
 
-from ipr_worlds.backend.app.helpers import LLMResponseManager
+from backend.app.helpers import LLMResponseManager
 
 from dataclasses import dataclass
 from typing import List, Dict, AnyStr, Union
@@ -10,11 +10,10 @@ from dotenv import load_dotenv
 
 from enum import Enum
 from abc import ABC, abstractmethod
-from google import genai
-from google.genai import types
 from autogen import ConversableAgent, AssistantAgent, UserProxyAgent, GroupChat, GroupChatManager, register_function
-from ipr_worlds.shared.models import TaskResponse
-from ipr_worlds.backend.app.schema import task_request_schema
+from shared.models import TaskResponse
+from backend.app.schema import task_request_schema
+
 class LLMClientBase(ABC):
     def __init__(self, api:str, base_url:str, response_manager:LLMResponseManager):
         self.api = api 
@@ -130,32 +129,32 @@ class GPTChatCompletionClient(AzureAIClient):
         return msgs
     
 
-class GeminiClient(LLMClientBase):
+# class GeminiClient(LLMClientBase):
 
-    def __init__(self, api, base_url):
-        super().__init__(api, None)
-        self.client = genai.Client(api_key=api)
+#     def __init__(self, api, base_url):
+#         super().__init__(api, None)
+#         self.client = genai.Client(api_key=api)
     
-    def prepare_payload(self):
-        pass
+#     def prepare_payload(self):
+#         pass
         
-    def call(self, **kwargs):
-        required_keys = ["model", "contents"]
-        for key in required_keys:
-            if key not in kwargs:
-                raise ValueError(f"Missing required parameter: '{key}'")
+#     def call(self, **kwargs):
+#         required_keys = ["model", "contents"]
+#         for key in required_keys:
+#             if key not in kwargs:
+#                 raise ValueError(f"Missing required parameter: '{key}'")
         
-        try:
-            response = self.client.models.generate_content(
-                model=kwargs["model"], contents=kwargs["contents"]
-            )
-        except Exception as e:
-            raise ValueError(f"Error during content generation: {e}")
+#         try:
+#             response = self.client.models.generate_content(
+#                 model=kwargs["model"], contents=kwargs["contents"]
+#             )
+#         except Exception as e:
+#             raise ValueError(f"Error during content generation: {e}")
         
-        return response.text
+#         return response.text
     
-    def parse_response(self, **kwargs):
-        pass
+#     def parse_response(self, **kwargs):
+#         pass
 
 
 

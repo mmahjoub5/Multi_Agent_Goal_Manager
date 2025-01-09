@@ -1,13 +1,13 @@
-from ipr_worlds.backend.app.LLMClient import GPTChatCompletionClient, GPTCompletionClient, GeminiClient, AutoGenLLMClient
-from ipr_worlds.backend.app.helpers import InMemoryResponseManager
+from  backend.app.LLMClient import GPTChatCompletionClient, GPTCompletionClient, AutoGenLLMClient
+from  backend.app.helpers import InMemoryResponseManager
 import opik
-from ipr_worlds.backend.app.helpers import InMemoryResponseManager, Autogen_InMemoryResponseManager
-from ipr_worlds.shared.models import TaskRequest, TaskResponse
-from ipr_worlds.backend.app.configs.config import *
-from ipr_worlds.backend.app.configs.auto_gen import autogen_agent_config
-from ipr_worlds.backend.app.templates import example_strings
+from  backend.app.helpers import InMemoryResponseManager, Autogen_InMemoryResponseManager
+from  shared.models import TaskRequest, TaskResponse
+from  backend.app.configs.config import *
+from  backend.app.configs.auto_gen import autogen_agent_config
+from  backend.app.templates import example_strings
 from typing import Dict
-from ipr_worlds.backend.app.configs.config import rabbitmq_client
+from  backend.app.configs.config import rabbitmq_client
 
 def send_task_to_low_level_controller(task:Dict):
     

@@ -2,8 +2,8 @@ from abc import ABC
 from typing import Optional
 
 from pydantic import UUID4, Field
-from ipr_worlds.backend.app.domain.base.nosql import NoSQLBaseDocument
-from ipr_worlds.shared.models import *
+from  backend.app.domain.base.nosql import NoSQLBaseDocument
+from  shared.models import *
 
 from enum import StrEnum
 

@@ -1,1 +1,1 @@
-from ipr_worlds.backend.app.configs.config import *
+from  backend.app.configs.config import *

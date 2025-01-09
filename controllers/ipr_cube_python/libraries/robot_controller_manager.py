@@ -1,5 +1,5 @@
-from ipr_worlds.controllers.ipr_cube_python.libraries.ikpy_wrapper import IKPY_WRAPPER
-from ipr_worlds.controllers.ipr_cube_python.libraries.ipr import IPR
+from  controllers.ipr_cube_python.libraries.ikpy_wrapper import IKPY_WRAPPER
+from  controllers.ipr_cube_python.libraries.ipr import IPR
 
 
 class Robot_Control_Manager():

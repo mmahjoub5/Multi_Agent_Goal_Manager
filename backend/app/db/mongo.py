@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
-from ipr_worlds.backend.app.configs.config import MONGO_URI
+from  backend.app.configs.config import MONGO_URI
 
 
 

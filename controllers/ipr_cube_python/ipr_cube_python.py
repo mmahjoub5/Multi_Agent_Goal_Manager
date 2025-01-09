@@ -11,17 +11,17 @@ import re
 import matplotlib.pyplot
 from mpl_toolkits.mplot3d import Axes3D
 # Add the path to the 'ipr_worlds' directory to sys.path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..','..')))
-from ipr_worlds.controllers.ipr_cube_python.libraries.ikpy_wrapper import IKPY_WRAPPER
-from ipr_worlds.controllers.ipr_cube_python.libraries.ikpy_wrapper import IKPY_WRAPPER
-from ipr_worlds.controllers.ipr_cube_python.libraries.api_client import SYNC_APIClient, ASYNC_APIClient
-from ipr_worlds.controllers.ipr_cube_python.json.robot_capability import robot_capability_json
-from ipr_worlds.shared.models import *
-from ipr_worlds.controllers.ipr_cube_python.libraries.api_client import SYNC_APIClient, ASYNC_APIClient
-from ipr_worlds.controllers.ipr_cube_python.json.robot_capability import robot_capability_json
-from ipr_worlds.shared.models import TaskRequest, SetGoalRequest
-from ipr_worlds.shared.rabbitmq_manager import RabbitMQ_Client, RabbitMQConsumerManager
-from ipr_worlds.controllers.ipr_cube_python.libraries.robot_controller_manager import Robot_Control_Manager
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+
+from  controllers.ipr_cube_python.libraries.ikpy_wrapper import IKPY_WRAPPER
+from  controllers.ipr_cube_python.libraries.api_client import SYNC_APIClient, ASYNC_APIClient
+from  controllers.ipr_cube_python.json.robot_capability import robot_capability_json
+from  shared.models import *
+from  controllers.ipr_cube_python.libraries.api_client import SYNC_APIClient, ASYNC_APIClient
+from  controllers.ipr_cube_python.json.robot_capability import robot_capability_json
+from  shared.models import TaskRequest, SetGoalRequest
+from  shared.rabbitmq_manager import RabbitMQ_Client, RabbitMQConsumerManager
+from  controllers.ipr_cube_python.libraries.robot_controller_manager import Robot_Control_Manager
 from time import sleep
 import ast
 import threading

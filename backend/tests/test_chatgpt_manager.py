@@ -1,13 +1,13 @@
-from ipr_worlds.backend.app.LLMClient import AutoGenLLMClient
-from ipr_worlds.backend.app.helpers import InMemoryResponseManager
+from  backend.app.LLMClient import AutoGenLLMClient
+from  backend.app.helpers import InMemoryResponseManager
 import unittest
 from typing import List, Dict
 from dataclasses import dataclass
-from ipr_worlds.backend.app.configs.auto_gen import autogen_agent_config
-from ipr_worlds.backend.app import LLM_Config
-from ipr_worlds.shared.models import Enviroment
-from ipr_worlds.backend.app.helpers import templateManager
-from ipr_worlds.backend.app.templates import example_strings
+from  backend.app.configs.auto_gen import autogen_agent_config
+from  backend.app import LLM_Config
+from  shared.models import Enviroment
+from  backend.app.helpers import templateManager
+from  backend.app.templates import example_strings
 # Unit Tests
 
 # TODO: find a way to test this 
