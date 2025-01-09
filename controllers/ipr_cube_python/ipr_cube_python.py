@@ -28,13 +28,13 @@ import threading
 import json
 import pdb
 import copy
+import os 
 
 
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+urdf = os.path.join(script_dir, "IprHd6m180.urdf")
 
-
-
-urdf = "/Users/aminmahjoub/project_test/ipr_worlds/controllers/ipr_cube_python/IprHd6m180.urdf"
 # Add the parent directory to sys.path
 my_chain = IKPY_WRAPPER(urdf=urdf)
 my_chain.active_links_mask = [False, True, True, True, True, True, True, False ]  # Set for each joint
@@ -84,6 +84,7 @@ task_look_up_table = copy.deepcopy(goalRequest.possible_tasks)
 ipr = IPR()
 ik_wrapper = IKPY_WRAPPER(urdf=urdf)
 controller_manager = Robot_Control_Manager(ipr_object=ipr, ikpy_wrapper_object=ik_wrapper)
+
 def on_task_feedback_callback(ch, method, properties, body):
     print("WE ARE HERE NOW")
     
@@ -99,15 +100,14 @@ def on_task_feedback_callback(ch, method, properties, body):
             task['parameters'] = [
                 convert_to_floats(param) if isinstance(param, str) else param
                 for param in task['parameters']
-            ]
-                            
+            ]            
                 
             print(task["parameters"])
             if task["name"] == "calculate_inverse_kinematics":
                 task["parameters"].pop()
                 task["parameters"].pop()
             
-            if task["pass_returned_value_from"] is not None:
+            if task["pass_returned_value_from"] != "":
                 task["parameters"] = controller_manager.get_return_value(task["pass_returned_value_from"])
 
 

@@ -29,7 +29,7 @@ print(prompt)
 
 
 #Load environment variables at the start of your application
-load_dotenv("/Users/aminmahjoub/ipr_worlds/backend/app/.env")
+load_dotenv("ipr_worlds/backend/app/.env")
 OPENAI_KEY_CHAT = os.getenv("AZURE_OPENAI_KEY")
 ENDPOINT_CHAT = os.getenv("AZURE_OPENAI_ENDPOINT")
 CHAT_VERSION = "2024-08-01-preview"  # Update if needed

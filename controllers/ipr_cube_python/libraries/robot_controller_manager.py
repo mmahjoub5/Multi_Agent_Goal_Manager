@@ -27,7 +27,7 @@ class Robot_Control_Manager():
         if task_name in self.task_map:
             try:
                 # Call the corresponding task function with the given parameters
-                self.returned_value["task_name"] = self.task_map[task_name](*params)
+                self.returned_value[task_name] = self.task_map[task_name](*params)
             except Exception as e:
                 raise SystemError(f"Error executing task '{task_name}': {e}")
         else:
