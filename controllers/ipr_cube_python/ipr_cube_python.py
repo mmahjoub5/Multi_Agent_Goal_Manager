@@ -40,7 +40,6 @@ my_chain = IKPY_WRAPPER(urdf=urdf)
 my_chain.active_links_mask = [False, True, True, True, True, True, True, False ]  # Set for each joint
 
 
-target_point = [3.44e-5, -.30, 0]
 
 '''
     GLOBAL OBJECTS
@@ -66,7 +65,7 @@ json_env = {
 
 def convert_to_floats(lst_str):
     # Check if the string is a valid list-like structure with numbers
-    if re.fullmatch(r'\[([\d\.,\s]*)\]', lst_str):  # Matches patterns like '[1.0, 2.0, 0.5]'
+    if re.fullmatch(r'\[([\d\.,\sEe\+\-]*)\]', lst_str):  # Matches patterns like '[1.0, 2.0, 0.5]'
         # Use ast.literal_eval to safely convert the string to a list
         try:
             return [float(x) for x in ast.literal_eval(lst_str)]  # Convert to floats
@@ -86,15 +85,13 @@ ik_wrapper = IKPY_WRAPPER(urdf=urdf)
 controller_manager = Robot_Control_Manager(ipr_object=ipr, ikpy_wrapper_object=ik_wrapper)
 
 def on_task_feedback_callback(ch, method, properties, body):
-    print("WE ARE HERE NOW")
     
     #pdb.set_trace()
     print(f" [x] Received {body}")
     ch.basic_ack(delivery_tag=method.delivery_tag)
     try: 
         json_data = json.loads(body.decode())
-        json_data = json.loads(json_data["response"])
-        print("json data"  , json_data)
+        json_data = json_data["response"]
         # Iterate through the data
         for task in json_data['TASK']:
             task['parameters'] = [
@@ -105,14 +102,12 @@ def on_task_feedback_callback(ch, method, properties, body):
             if task["name"] == "calculate_inverse_kinematics":
                 task["parameters"].pop()
                 task["parameters"].pop()
+                
                 controller_manager.execute_task(task["name"], task["parameters"])
             elif task["pass_returned_value_from"] != "":
-                print("TASK BEFORE RESET")
-                print(task)
+  
                 task["parameters"] = controller_manager.get_return_value(task["pass_returned_value_from"])
 
-                print("NEW PARAMS")
-                print(task["parameters"])
                 controller_manager.execute_task(task["name"], [task["parameters"]])
             
     except json.JSONDecodeError:
@@ -149,7 +144,7 @@ consumer_client.start_consumer("task_feedback", callback=on_task_feedback_callba
 
 while True:
     controller_manager.step()
-    # Reset the event for the next iteration (if you need to reuse it)
+    #Reset the event for the next iteration (if you need to reuse it)
 
 
 

@@ -26,9 +26,6 @@ class Robot_Control_Manager():
         """Dynamically execute tasks based on task name."""
         if task_name in self.task_map:
             try:
-                if task_name == "grab_object":
-                    print("GRAB OBJECT PARAMS")
-                    print(params)
                 # Call the corresponding task function with the given parameters
                 self.returned_value[task_name] = self.task_map[task_name](*params)
             except Exception as e:
@@ -59,6 +56,7 @@ class Robot_Control_Manager():
         self.ipr_object.moveToInitPosition()
     
     def grab_object(self, grab_position:list):
+
         self.ipr_object.grabObject(grabPosition=grab_position)
     
     def drop_object(self, drop_position:list):
@@ -68,9 +66,10 @@ class Robot_Control_Manager():
         return self.ikpy_wrapper.forward_kinematics(joint_angles=joint_angles)
     
     def calculate_inverse_kinematics(self, target_position, target_orientation=None, initial_angles=None):
+        assert target_position is not None
         return self.ikpy_wrapper.inverse_kinematics_full(target_position=target_position,
                                                   target_orientation=target_orientation,
-                                                  initial_angles=initial_angles)
+                                                  initial_angles=initial_angles)[1:-1]
 
     def _getMotorIndex(self, joint_name:str):
         return self.ipr_object.motorNameMap[joint_name]

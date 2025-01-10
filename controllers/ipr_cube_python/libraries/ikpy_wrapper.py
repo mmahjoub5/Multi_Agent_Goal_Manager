@@ -50,8 +50,6 @@ class IKPY_WRAPPER:
         ik = self.robot.inverse_kinematics(target_position)
         ik = self.robot.inverse_kinematics(target_position, target_orientation, initial_position=ik, orientation_mode='all')
 
-        print(ik)
-        
 
         return ik
 

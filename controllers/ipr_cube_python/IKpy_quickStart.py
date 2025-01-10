@@ -80,28 +80,7 @@ from pydantic import ValidationError
     
 input_data = {
    
-    "TASK": [
-        
-        {
-            "tasks": ["calculate_inverse_kinematics","move_all_joints_to_init","grab_object"],
-            "name": "calculate_inverse_kinematics",
-            "parameters": ["[1.0, 2.0, 0.5]"],
-            "pass_returned_value_from": "",
-        },
-        {
-             "tasks": ["calculate_inverse_kinematics","move_all_joints_to_init","grab_object"],
-            "name": "move_all_joints_to_init",
-            "parameters": [],
-            "pass_returned_value_from": "",
-        },
-        {
-            "tasks": ["calculate_inverse_kinematics","move_all_joints_to_init","grab_object"],
-            "name": "grab_object",
-            "parameters": ["calculate_inverse_kinematics"],
-            "pass_returned_value_from": "",
-        },
-    ]
-}
+    "TASK":[{"name":"calculate_inverse_kinematics","parameters":["[1.0, 2.0, 0.5]", "[0.0, 0.0, 0.0]", "[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]"],"pass_returned_value_from":""},{"name":"move_all_joints_to_init","parameters":[],"pass_returned_value_from":""},{"name":"grab_object","parameters":["[1.0, 2.0, 0.5]"],"pass_returned_value_from":"calculate_inverse_kinematics"}]}
 
 
 
@@ -110,6 +89,6 @@ input_data = {
 try:
     feedback = TaskFeedback(**input_data)
 except ValidationError as e:
-    print("Validation Error:", e)
+    print("Validation Error:", e.errors())
 
 

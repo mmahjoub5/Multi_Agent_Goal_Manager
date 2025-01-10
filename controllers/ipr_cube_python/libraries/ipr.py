@@ -142,7 +142,7 @@ class IPR(Robot):
         ##print(f'checking position of motor:  {self.motorName[motorIndex]}')
         sensor = self.mPositionSensors[motorIndex]
         ##print("sensor position:  ", sensor.getValue())
-        ##print(math.fabs(sensor.getValue() - targetPostion) <= self.POSITION_TOLERANCE)
+        #print(math.fabs(sensor.getValue() - targetPostion) <= self.POSITION_TOLERANCE)
 
         # #print("----------TOUCH-------------")
         # for i in range(self.TOUCH_SENSOR_NUMBER):
@@ -190,11 +190,12 @@ class IPR(Robot):
     
     def grabObject(self, grabPosition:list):
         # set motor position objectives 
+        print("grab position", grabPosition)
         upperArmIndex = self.motorNameMap["upperarm"]
         for i in range(self.MOTOR_NUMBER):
             if i == upperArmIndex:
                 self.mMotors[i].setPosition(self.UPPER_ARM_MOTOR_TRANSITION_POSITION)
-                #print(grabPosition[i])
+                print(grabPosition[i])
             else:
                 self.mMotors[i].setPosition(grabPosition[i])
             
@@ -209,7 +210,7 @@ class IPR(Robot):
             while not self._postitionReached(i, position):
 
                 self.step(self.mTimeStep)
-                ##print("here", i)
+                #print("here", i)
         #print("rotate base and set gripper complete")
         
         # lower arm

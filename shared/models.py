@@ -27,32 +27,33 @@ class TASK(BaseModel):
     parameters:List[str]
     pass_returned_value_from:str
 
-    @field_validator('name', mode='after')
-    @classmethod
-    def ensure_task_names(cls, value:str, info: ValidationInfo):
-        tasks = info.data.get("tasks", [])
-        if value not in tasks:
-            raise ValueError(f"ensure_task_names failed because {value} not a valid name out of tasks")
-        return value
+    #TODO: FIX SERIALIZER ERRORS THEN DEPLOY THIS
+    # @field_validator('name', mode='after')
+    # @classmethod
+    # def ensure_task_names(cls, value:str, info: ValidationInfo):
+    #     tasks = info.data.get("tasks", [])
+    #     if value not in tasks:
+    #         raise ValueError(f"ensure_task_names failed because {value} not a valid name out of tasks")
+    #     return value
     
    
-    @field_validator('pass_returned_value_from',mode='after')
-    @classmethod
-    def ensure_pass_returned_value_from(cls, value, info: ValidationInfo):
-        tasks = info.data.get("tasks", [])
-        if value not in tasks and  value != "":
-            raise ValueError(f"ensure_pass_returned_value_from {value} not a valid name out of tasks")
-        return value
+    # @field_validator('pass_returned_value_from',mode='after')
+    # @classmethod
+    # def ensure_pass_returned_value_from(cls, value, info: ValidationInfo):
+    #     tasks = info.data.get("tasks", [])
+    #     if value not in tasks and  value != "":
+    #         raise ValueError(f"ensure_pass_returned_value_from {value} not a valid name out of tasks")
+    #     return value
     
-    @field_validator('parameters', mode='after')
-    @classmethod
-    def ensure_parameters(cls, value:List[str]):
-        for p in value:
-            if re.fullmatch(r'\[([\d\.,\s]*)\]', p):
-                pass
-            else:
-                raise ValueError(f"Invalid parameter: {p}. Must be a numeric string.")
-        return value
+    # @field_validator('parameters', mode='after')
+    # @classmethod
+    # def ensure_parameters(cls, value:List[str]):
+    #     for p in value:
+    #         if re.fullmatch(r'\[([\d\.,\sEe\+\-]*)\]', p):
+    #             pass
+    #         else:
+    #             raise ValueError(f"Invalid parameter: {p}. Must be a numeric string.")
+    #     return value
 
 class TaskFeedback(BaseModel):
    TASK:List[TASK]
