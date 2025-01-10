@@ -80,7 +80,7 @@ robot_capability_json = {
     "boundary": "Stay within the working area"
   },
   "goal_specifications": {
-    "target_position": [1.0, 2.0, 0.5],
+    "target_position": [3.44e-5, -.30, 0],
     "task_type": "pickup",
     "additional_parameters": {
       "object_type": "box",

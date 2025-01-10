@@ -101,18 +101,20 @@ def on_task_feedback_callback(ch, method, properties, body):
                 convert_to_floats(param) if isinstance(param, str) else param
                 for param in task['parameters']
             ]            
-                
-            print(task["parameters"])
+            
             if task["name"] == "calculate_inverse_kinematics":
                 task["parameters"].pop()
                 task["parameters"].pop()
-            
-            if task["pass_returned_value_from"] != "":
+                controller_manager.execute_task(task["name"], task["parameters"])
+            elif task["pass_returned_value_from"] != "":
+                print("TASK BEFORE RESET")
+                print(task)
                 task["parameters"] = controller_manager.get_return_value(task["pass_returned_value_from"])
 
-
-
-            controller_manager.execute_task(task["name"], task["parameters"])
+                print("NEW PARAMS")
+                print(task["parameters"])
+                controller_manager.execute_task(task["name"], [task["parameters"]])
+            
     except json.JSONDecodeError:
         raise SystemError("Error: Invalid JSON format")
     
