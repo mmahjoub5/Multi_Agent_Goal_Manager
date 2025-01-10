@@ -1,9 +1,9 @@
 from fastapi import FastAPI, BackgroundTasks
 from typing import Dict
 from  backend.app.configs.auto_gen import autogen_agent_config
-from  backend.app.configs.config import ROBOTTABLE
+from  backend.app.configs.config import ROBOTTABLE, TASKLIST
 import pdb
-from  shared.models import TaskRequest, TaskResponse, SetGoalRequest, SetGoalResponse, Enviroment
+from  shared.models import TaskRequest, TaskResponse, SetGoalRequest, SetGoalResponse, TaskFeedback
 from  backend.app.chains import one_llm_chain, two_llm_chain, autogen_chain
 from  backend.app.helpers import templateManager
 from  shared.rabbitmq_manager import RabbitMQConsumerManager
@@ -103,7 +103,15 @@ def on_task_request_callback(ch, method, properties, body):
     
     if response is not None:
         tasks_for_client = response.message[-1]["content"]   
-        rabbitmq_client.send_message("task_feedback", message={"response":tasks_for_client})
+        try:
+            task_json = json.loads(tasks_for_client)
+            for i, val in enumerate(task_json["TASK"]):
+                val["tasks"] = TASKLIST[packet.robot_id]
+            feedback = TaskFeedback(**task_json)
+        except ValidationError as e:
+            # reprompt gpt 
+            raise ValidationError("Validation Error:", e)
+        rabbitmq_client.send_message("task_feedback", message={"response":feedback.model_dump()})
     else:
         raise SystemError("GPT CONTROLLER RESPONSE IS NONE")
 
@@ -119,6 +127,8 @@ def setGoal_and_startQs(packet:SetGoalRequest):
     # Combine robot_controls and robot_computations into one list
     
     ROBOTTABLE[robot_id] = robot_doc
+    TASKLIST[robot_id] = [task["task_name"] for task in robot_doc.possible_tasks]
+    
     
 
     # TODO: update robot meta data and id to DB

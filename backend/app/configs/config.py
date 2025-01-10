@@ -45,6 +45,7 @@ MONGO_URI = "mongodb://localhost:27017"
 DATABASE_NAME = "robotarm_db"
 
 ROBOTTABLE = {}
+TASKLIST = {}
 
 
 # API Table 
