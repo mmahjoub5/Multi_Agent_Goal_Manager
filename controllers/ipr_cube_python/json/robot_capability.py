@@ -74,7 +74,7 @@ robot_capability_json = {
       "position": [0.0, 0.0, 0.0]
     }
   ],
-  "task_description": "Pick up and deliver an object",
+  "task_description": "Pick up objectand deliver an object",
   "environment_constraints": {
     "obstacles": "No obstacles in the path",
     "boundary": "Stay within the working area"
@@ -91,32 +91,32 @@ robot_capability_json = {
   "possible_tasks": 
                    [
                         {
-                            "task_name": "move_base_joint_to",
+                            "task_name": "move_base",
                             "parameters": "[value: float (in radians)]",
                             "description": "Moves the robot's base joint to the specified position in radians. The value parameter is a float representing the position of the base joint in radians."
                         },
                         {
-                            "task_name": "move_uppera_arm_to",
+                            "task_name": "move_upperarm",
                             "parameters": "[value: float (in radians)]",
                             "description": "Moves the robot's upper arm joint to the specified position in radians. The value parameter is a float representing the position of the upper arm joint in radians."
                         },
                         {
-                            "task_name": "move_fore_arm_to",
+                            "task_name": "move_forearm",
                             "parameters": ["value: float (in radians)"],
                             "description": "Moves the robot's forearm joint to the specified position in radians. The value parameter is a float representing the position of the forearm joint in radians."
                         },
                         {
-                            "task_name": "move_uppera_arm_to",
+                            "task_name": "move_wrist",
                             "parameters": ["value: float (in radians)"],
-                            "description": "Moves the robot's upper arm joint to the specified position in radians. The value parameter is a float representing the position of the upper arm joint in radians."
+                            "description": "Moves the robot's wrist joint to the specified position in radians. The value parameter is a float representing the position of the wrist joint in radians."
                         },
                         {
-                            "task_name": "move_rotational_wrist_to",
+                            "task_name": "move_rotational_wrist",
                             "parameters": ["value: float (in radians)"],
                             "description": "Moves the robot's rotational wrist joint to the specified position in radians. The value parameter is a float representing the position of the rotational wrist joint in radians."
                         },
                         {
-                            "task_name": "move_gripper_right_to",
+                            "task_name": "move_gripper_right",
                             "parameters": ["value: float (in radians)"],
                             "description": "Moves the robot's gripper to the specified position in radians. The value parameter is a float representing the position of the gripper in radians."
                         },

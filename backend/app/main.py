@@ -4,8 +4,8 @@ from  backend.app.configs.auto_gen import autogen_agent_config
 from  backend.app.configs.config import ROBOTTABLE, TASKLIST
 import pdb
 from  shared.models import TaskRequest, TaskResponse, SetGoalRequest, SetGoalResponse, TaskFeedback
-from  backend.app.chains import one_llm_chain, two_llm_chain, autogen_chain
-from  backend.app.helpers import templateManager
+from  backend.app.chains import one_llm_chain, two_llm_chain, autogen_chain, fix_json_reprompt_chain
+from  backend.app.helpers import templateManager, reprompt_template
 from  shared.rabbitmq_manager import RabbitMQConsumerManager
 from datetime import datetime
 import json
@@ -15,26 +15,12 @@ from enum import Enum
 import threading
 from  backend.app.domain.documents import RobotDocument
 import re
+import time
 # initialize app
 app = FastAPI()
 consumer_manager = RabbitMQConsumerManager(rabbitmq_client)
 
 
-def extract_json_by_schema(raw_string) -> str:
-    # clean up json 
-    cleaned_response_text = raw_string.replace("\n", "").replace("\r", "").replace("'\'","")
-    cleaned_response_text = re.sub(r"#.*", "", cleaned_response_text)
-    cleaned_response_text = re.sub(r"/\*.*?\*/|//.*", "", cleaned_response_text, flags=re.DOTALL)
-    cleaned_response_text = cleaned_response_text.strip()
-
-    # Regex pattern for a JSON with known keys like "TASK", "TASK ID", and "TASK Parameters"
-    pattern = r"(\{.*?\"TASK\".*?\})"
-     # Search for the pattern in the input
-    match = re.search(pattern, cleaned_response_text, re.DOTALL)
-    if match:
-        return match.group(1)
-    else:
-        raise SystemError(f"Error: No JSON matching the schema found.{cleaned_response_text}" )
 
 
 
@@ -62,6 +48,12 @@ class TASK_CONTROLLER_TYPE(Enum):
     ONE_LLM = "one_llm"
     TWO_LLM = "two_llm"
     AUTOGEN = "autogen"
+
+def validate_and_process_tasks(tasks_json,robot_id):
+    """Validate and process the task JSON."""
+    for i, val in enumerate(tasks_json["TASK"]):
+        val["tasks"] = TASKLIST[robot_id]
+    return TaskFeedback(**tasks_json)
 
 def on_task_request_callback(ch, method, properties, body):
     ch.basic_ack(delivery_tag=method.delivery_tag)
@@ -105,12 +97,20 @@ def on_task_request_callback(ch, method, properties, body):
         tasks_for_client = response.message[-1]["content"]   
         try:
             task_json = json.loads(tasks_for_client)
-            for i, val in enumerate(task_json["TASK"]):
-                val["tasks"] = TASKLIST[packet.robot_id]
-            feedback = TaskFeedback(**task_json)
+            feedback = validate_and_process_tasks(tasks_json=task_json, robot_id=packet.robot_id)
         except ValidationError as e:
-            # reprompt gpt 
-            raise ValidationError("Validation Error:", e)
+            prompt = reprompt_template(str(e))
+            try :
+                time.sleep(2)
+                response:TaskResponse = fix_json_reprompt_chain(prompt, response, packet.task_controller_model)
+                if response is not None:
+                    tasks_for_client = response.message[-1]["content"]   
+                    task_json = json.loads(tasks_for_client)
+                    feedback = validate_and_process_tasks(tasks_json=task_json, robot_id=packet.robot_id)
+            except ValidationError as secondErrror:
+                raise ValidationError("Validation Error:", secondErrror)
+
+
         rabbitmq_client.send_message("task_feedback", message={"response":feedback.model_dump()})
     else:
         raise SystemError("GPT CONTROLLER RESPONSE IS NONE")

@@ -112,3 +112,17 @@ def templateManager(environment:Enviroment,tasks:List, robot_type:str, robot_cap
 
     prompt = template.render(data)
     return prompt
+
+def reprompt_template(error:str):
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    template_dir = os.path.join(script_dir, "templates")
+    env = Environment(loader=FileSystemLoader(template_dir))
+    template = env.get_template("reprompt_gpt.jinja2") 
+    data = {
+        "error" : error
+    }
+    prompt = template.render(data)
+    return prompt
+
+
+    

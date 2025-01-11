@@ -15,7 +15,10 @@ task_request_schema = {
             "parameters": {
               "type": "array",
               "items": {
-                "type": "string"
+                "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
               }
             },
             "pass_returned_value_from": {

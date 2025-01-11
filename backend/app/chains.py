@@ -80,6 +80,8 @@ def one_llm_chain(prompt:str, deployment_name:str) -> TaskResponse:
             }
         ]
     response_manager = InMemoryResponseManager()
+    for i in messages:
+        response_manager.add_response(role=i["role"], content = i["content"])
     if deployment_name not in API_TABLE:
         raise ValueError(f"Deployment name {deployment_name} not found in API_TABLE.")
     api_config = API_TABLE[deployment_name]
@@ -118,3 +120,28 @@ def autogen_chain(prompt:str, deployment_name:str) -> TaskResponse:
    
     reponse = TaskResponse(message=autogen_client.get_history())
     return reponse
+
+@opik.track
+def fix_json_reprompt_chain(prompt:str, response:TaskResponse, deployment_name:str):
+    response.message.append(
+        
+            {
+                "role": "user", 
+                "content": prompt
+            }
+        
+    )
+    response_manager = InMemoryResponseManager()
+    if deployment_name not in API_TABLE:
+        raise ValueError(f"Deployment name {deployment_name} not found in API_TABLE.")
+    api_config = API_TABLE[deployment_name]
+
+    chat_client = GPTChatCompletionClient(response_manager=response_manager, **api_config.model_dump())
+    chat_response = chat_client.call(messages=response.message)
+    msgs = chat_client.parse_response(chat_response)
+    
+    for i in msgs:
+        chat_client.add_memory(role = "assistant", content = i)
+
+    response = TaskResponse(message=chat_client.get_history())
+    return response
