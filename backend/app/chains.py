@@ -122,7 +122,7 @@ def autogen_chain(prompt:str, deployment_name:str) -> TaskResponse:
     return reponse
 
 @opik.track
-def fix_json_reprompt_chain(prompt:str, response:TaskResponse, deployment_name:str):
+def reprompt_llm_chain(prompt:str, response:TaskResponse, deployment_name:str):
     response.message.append(
         
             {
@@ -144,4 +144,3 @@ def fix_json_reprompt_chain(prompt:str, response:TaskResponse, deployment_name:s
         chat_client.add_memory(role = "assistant", content = i)
 
     response = TaskResponse(message=chat_client.get_history())
-    return response

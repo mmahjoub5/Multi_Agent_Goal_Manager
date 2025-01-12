@@ -4,7 +4,7 @@ from  backend.app.configs.auto_gen import autogen_agent_config
 from  backend.app.configs.config import ROBOTTABLE, TASKLIST
 import pdb
 from  shared.models import TaskRequest, TaskResponse, SetGoalRequest, SetGoalResponse, TaskFeedback
-from  backend.app.chains import one_llm_chain, two_llm_chain, autogen_chain, fix_json_reprompt_chain
+from  backend.app.chains import one_llm_chain, two_llm_chain, autogen_chain, reprompt_llm_chain
 from  backend.app.helpers import templateManager, reprompt_template
 from  shared.rabbitmq_manager import RabbitMQConsumerManager
 from datetime import datetime
@@ -95,20 +95,21 @@ def on_task_request_callback(ch, method, properties, body):
     
     if response is not None:
         tasks_for_client = response.message[-1]["content"]   
+        task_json = json.loads(tasks_for_client)
         try:
-            task_json = json.loads(tasks_for_client)
             feedback = validate_and_process_tasks(tasks_json=task_json, robot_id=packet.robot_id)
         except ValidationError as e:
             prompt = reprompt_template(str(e))
-            try :
-                time.sleep(2)
-                response:TaskResponse = fix_json_reprompt_chain(prompt, response, packet.task_controller_model)
-                if response is not None:
-                    tasks_for_client = response.message[-1]["content"]   
-                    task_json = json.loads(tasks_for_client)
+            time.sleep(2)
+            response:TaskResponse = reprompt_llm_chain(prompt, response, packet.task_controller_model)
+            if response is not None:
+                tasks_for_client = response.message[-1]["content"]   
+                task_json = json.loads(tasks_for_client)    
+                try :
                     feedback = validate_and_process_tasks(tasks_json=task_json, robot_id=packet.robot_id)
-            except ValidationError as secondErrror:
-                raise ValidationError("Validation Error:", secondErrror)
+                except ValidationError as secondErrror:
+                    # TODO: should we we prompt again? 
+                    raise ValidationError("Validation Error:", secondErrror)
 
 
         rabbitmq_client.send_message("task_feedback", message={"response":feedback.model_dump()})
@@ -145,6 +146,9 @@ def setGoal_and_startQs(packet:SetGoalRequest):
 @app.post("/goalReached")
 def close_connection(packet:SetGoalRequest):
    pass
+
+
+
 @app.get("/async")
 async def getAsync():
     return {"value":"you are async gay"}

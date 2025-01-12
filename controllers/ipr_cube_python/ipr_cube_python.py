@@ -92,6 +92,7 @@ def on_task_feedback_callback(ch, method, properties, body):
     try: 
         json_data = json.loads(body.decode())
         json_data = json_data["response"]
+        
         # Iterate through the data
         for task in json_data['TASK']:
             task['parameters'] = [
@@ -102,13 +103,10 @@ def on_task_feedback_callback(ch, method, properties, body):
             if task["name"] == "calculate_inverse_kinematics":
                 task["parameters"].pop()
                 task["parameters"].pop()
-                
-                controller_manager.execute_task(task["name"], task["parameters"])
             elif task["pass_returned_value_from"] != "":
-  
-                task["parameters"] = controller_manager.get_return_value(task["pass_returned_value_from"])
-
-                controller_manager.execute_task(task["name"], [task["parameters"]])
+                task["parameters"] = [controller_manager.get_return_value(task["pass_returned_value_from"])]
+            controller_manager.execute_task(task["name"], task["parameters"])
+            
             
     except json.JSONDecodeError:
         raise SystemError("Error: Invalid JSON format")
