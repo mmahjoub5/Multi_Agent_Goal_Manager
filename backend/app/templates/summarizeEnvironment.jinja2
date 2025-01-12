@@ -52,25 +52,3 @@ Please provide a JSON response in the following format:
   ]
 }
 
-Example:
-
-Pick up object at [1,3,4]
-
-  "TASK": [
-    {
-      "name": "calculate_inverse_kinematics",  # A unique task identifier
-      "parameters": ["[1,3,4]"]  # A list of task parameters (strings)
-      "pass_returned_value_from": ""
-    },
-     {
-      "name": "move_all_joints_to_init",  # A unique task identifier
-      "parameters": [""]  # A list of task parameters (strings)
-      "pass_returned_value_from": "" # name of task
-    }
-     {
-      "name": "grab_object",  # A unique task identifier
-      "parameters": []  # A list of task parameters (strings)
-      "pass_returned_value_from": "calculate_inverse_kinematics" # name of task
-    },
-    
-  ]

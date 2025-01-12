@@ -143,4 +143,5 @@ def reprompt_llm_chain(prompt:str, response:TaskResponse, deployment_name:str):
     for i in msgs:
         chat_client.add_memory(role = "assistant", content = i)
 
-    response = TaskResponse(message=chat_client.get_history())
+    return TaskResponse(message=chat_client.get_history())
+    

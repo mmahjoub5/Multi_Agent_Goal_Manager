@@ -35,23 +35,23 @@ class Robot_Control_Manager():
     
     def move_base_joint_to(self, value:float):
         self.ipr_object.moveToPosition(self._getMotorIndex("base"),
-                                         value)
+                                         value[0])
     
     def move_uppera_arm_to(self, value:float):
         self.ipr_object.moveToPosition(self._getMotorIndex("upperarm"),
-                                         value)
+                                         value[0])
     def move_fore_arm_to(self, value:float):
         self.ipr_object.moveToPosition(self._getMotorIndex("forearm"),
-                                         value)
+                                         value[0])
     def move_wrist_to(self, value:float):
         self.ipr_object.moveToPosition(self._getMotorIndex("wrist"),
-                                         value)
+                                         value[0])
     def move_rotational_wrist_to(self, value:float):
         self.ipr_object.moveToPosition(self._getMotorIndex("rotational_wrist"),
-                                         value)
+                                         value[0])
     def move_gripper_right_to(self, value:float):
         self.ipr_object.moveToPosition(self._getMotorIndex("gripper::right"),
-                                         value)
+                                         value[0])
     def move_all_joints_to_init(self):
         self.ipr_object.moveToInitPosition()
     
