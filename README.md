@@ -3,6 +3,8 @@
 
 This project allows you to control a **6-DOF robotic arm** using **task execution commands**. It leverages **Webots** for robot simulation, **RabbitMQ** for task messaging, and **GPT** for generating tasks.
 
+![image](https://github.com/user-attachments/assets/e74886ad-9566-4dc8-989a-e58646350e95)
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -59,5 +61,8 @@ Add python path in webots @Webots->Preferences->Python Command
 ```bash
 poetry run uvicorn backend.app.main:app --reload
 ```
+
+
+
 
 
