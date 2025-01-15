@@ -45,7 +45,7 @@ class RobotDocument(NoSQLBaseDocument):
 
 class TaskDocument(NoSQLBaseDocument):
     class Settings:
-        name = 'TaskHistory'
+        name = 'Task'
     task_id: str
     task_description: str
     robot_id : List[str]

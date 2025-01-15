@@ -16,6 +16,7 @@ import threading
 from  backend.app.domain.documents import RobotDocument
 import re
 import time
+import uuid
 # initialize app
 app = FastAPI()
 consumer_manager = RabbitMQConsumerManager(rabbitmq_client)
@@ -117,34 +118,43 @@ def on_task_request_callback(ch, method, properties, body):
         raise SystemError("GPT CONTROLLER RESPONSE IS NONE")
 
 
-    
-@app.post("/setGoal", response_model=SetGoalResponse)
+# TODO: UPDATE REGISTER ROBOT END POINT TO JUST REGISTER ROBOT, UPDATE ROBOTTABLE
+# RETURNS:
+@app.post("/registerRobot", response_model=SetGoalResponse)
 def setGoal_and_startQs(packet:SetGoalRequest):
     # get robot meta data 
-
+    task_id = str(uuid.uuid4())
     robot_doc = RobotDocument.get_or_create_from_request(request=packet)
 
-    robot_id = packet.robot_locations[0].robot_id 
+    robot_id = robot_doc.id
     # Combine robot_controls and robot_computations into one list
     
     ROBOTTABLE[robot_id] = robot_doc
-    TASKLIST[robot_id] = [task["task_name"] for task in robot_doc.possible_tasks]
-    
+    TASKLIST[robot_id] = [{"task_id": task_id, "task_name": [task["task_name"] for task in robot_doc.possible_tasks]}]
+
     
 
     # TODO: update robot meta data and id to DB
+    
+    response = SetGoalResponse(
+                            topicNames=[f"task_request", f"task_feedback"], 
+                            time = datetime.utcnow().isoformat(),
+                            task_id = task_id
+                            )
+    return response
+
+# TODO: UPDATE REGISTER TASK END POINT TO JUST REGISTER ROBOT, UPDATE TASKTABLE
+# RETURNS:....
+@app.post("/registerTask")
+def registerTask(packet:SetGoalRequest):
     consumer_manager.start_consumer("task_request", callback=on_task_request_callback)
 
     print("Consumer thread started, processing RabbitMQ messages in the background.")
-    response = SetGoalResponse(
-                            topicNames=[f"task_request", f"task_feedback"], 
-                            time = datetime.utcnow().isoformat())
-    return response
-    
+    pass
 
-
-@app.post("/goalReached")
+@app.post("/goalReached", response_model=SetGoalResponse)
 def close_connection(packet:SetGoalRequest):
+    
    pass
 
 

@@ -80,7 +80,7 @@ class RobotLocation(BaseModel):
 
 
 # Main data model for the request body
-class SetGoalRequest(BaseModel):
+class registerRobotRequest(BaseModel):
     # Meta data about the environment
     robot_type: str  # Type of robot(s) involved (e.g., 'robot_arm', 'mobile_robot')
     num_robots: int  # Number of robots involved in the task
@@ -88,11 +88,25 @@ class SetGoalRequest(BaseModel):
     robot_locations: List[RobotLocation]  # Locations of the robots at the start of the task
     task_description: str  # Description of the task the client is asking
     environment_constraints: Optional[Dict[str, str]] = {}  # Constraints for the environment (e.g., obstacles, boundaries)
-    goal_specifications: GoalSpecifications  # Specifications for the goal of the task
+   
     task_controller_type: str # autogen, oneLLM, TWOLLM
     possible_tasks:List[Dict]
 
-class SetGoalResponse(BaseModel):
+class registerTaskRequest(BaseModel):
+    
+    goal_specifications: GoalSpecifications  # Specifications for the goal of the task
+
+class ReachedGoalRequest(BaseModel):
+    robot_id: str  # robot id 
+    task_id: str # task id
+    pass
+
+class RegiserResponse(BaseModel):
     topicNames: List[str]
     time:str
+    task_id:str
+    robot_id: str
+
+class ReachGoalResponse(BaseModel):
+    pass
 
