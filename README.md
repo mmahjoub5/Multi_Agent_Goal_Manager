@@ -36,7 +36,7 @@ poetry install --no-root
 ```
 
 
-### 3. Download and Run RabbitMQ & MongoDB
+### 3. Download and Run RabbitMQ & MongoDB & Redis 
 ```bash
 docker pull rabbitmq:management
 docker run -d -p 5672:5672 -p 15672:15672 rabbitmq:management
@@ -44,6 +44,10 @@ docker run -d -p 5672:5672 -p 15672:15672 rabbitmq:management
 ```bash
 docker pull mongo
 docker run -d -p 27017:27017 mongo
+```
+```bash
+docker pull redis
+docker run --name redis-server -p 6379:6379 -d redis
 ```
 
 ### 4. Install Webots 
