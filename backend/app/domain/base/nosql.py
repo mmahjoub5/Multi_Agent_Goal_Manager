@@ -126,6 +126,36 @@ class NoSQLBaseDocument(BaseModel, Generic[T], ABC):
             return None
     
     @classmethod
+    def create(cls: Type[T], filter_doc:T | dict) -> T:
+        """
+        Create and save a new document in the database.
+
+        Args:
+            data (T | dict): Data to create the document. Can be a dictionary or an instance of the class.
+
+        Returns:
+            T: The newly created document instance.
+
+        Raises:
+            ValueError: If the provided data is invalid.
+            RuntimeError: If saving the document fails.
+        """
+        collection = _database[cls.get_collection_name()]
+        if isinstance(filter_doc, cls):
+            filter_doc = filter_doc.to_mongo(exclude_unset=True)
+        elif filter_doc is None:
+            filter_doc = {}
+        try: 
+            new_instance = cls(**filter_doc)
+            new_instance = new_instance.save()
+            if new_instance:
+                return new_instance
+            if not new_instance:
+                raise RuntimeError("Failed to save the new document to the database.")
+        except errors.OperationFailure as e:
+            raise RuntimeError("Failed to save the new document to the database.")
+
+    @classmethod
     def get_or_create(cls: Type[T], filter_doc:T | dict, **filter_options) -> T:
         """
         Fetch an existing document or create a new one if it doesn't exist.
@@ -194,11 +224,32 @@ class NoSQLBaseDocument(BaseModel, Generic[T], ABC):
             return None
 
     @classmethod
-    def bulk_find(cls: Type[T], **filter_options) -> list[T]:
+    def bulk_find(cls: Type[T],  **filter_options) -> list[T]:
         collection = _database[cls.get_collection_name()]
         try:
             instances = collection.find(filter_options)
-            return [document for instance in instances if (document := cls.from_mongo(instance)) is not None]
+            documents = []
+            for instance in list(instances):
+                document = cls.from_mongo(instance)
+                if document is not None:
+                    documents.append(document)
+            return documents
+        except errors.OperationFailure:
+            print("Failed to retrieve documents")
+
+            return []
+        
+    @classmethod
+    def find_all(cls: Type[T],  **filter_options) -> list[T]:
+        collection = _database[cls.get_collection_name()]
+        try:
+            instances = collection.find({})
+            documents = []
+            for instance in list(instances):
+                document = cls.from_mongo(instance)
+                if document is not None:
+                    documents.append(document)
+            return documents
         except errors.OperationFailure:
             print("Failed to retrieve documents")
 
@@ -211,3 +262,41 @@ class NoSQLBaseDocument(BaseModel, Generic[T], ABC):
                 "Document should define an Settings configuration class with the name of the collection."
             )
         return cls.Settings.name
+    
+    @classmethod
+    def remove_document(cls:Type[T], **filter_options) :
+        """Remove a document from the MongoDB collection based on filter options.
+
+        Args:
+            **filter_options: Key-value pairs to filter the document(s) to be deleted.
+
+        Returns:
+            int: The number of documents deleted (0 or 1 for delete_one).
+        """
+        collection = _database[cls.get_collection_name()]
+        try:
+            result = collection.delete_one(filter=filter_options)
+            return result.deleted_count
+        except errors.OperationFailure:
+            print("Failed to retrieve documents")
+            return 0
+        
+    @classmethod 
+    def update_document(cls:Type[T], filter:dict, update:dict, **kwargs):
+        """
+        Update documents in the collection based on a filter and update query.
+
+        Args:
+            filter (dict): The filter query to match documents.
+            update (dict): The update operation to perform.
+            **kwargs: Additional options for the update operation.
+
+        Returns:
+            int: The number of documents updated.
+        """
+        collection = _database[cls.get_collection_name()]
+        try:
+            result = collection.update_one(filter=filter, update=update)
+            return result.modified_count
+        except errors.OperationFailure as e:
+            raise RuntimeError(f"Failed to update documents: {e}")

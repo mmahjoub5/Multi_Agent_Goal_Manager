@@ -3,6 +3,8 @@ import os
 import opik
 from  shared.rabbitmq_manager import RabbitMQ_Client
 from pydantic import BaseModel
+
+# from cache.redis import RedisWrapper
 # Load environment variables at the start of your application
 load_dotenv()
 OPENAI_KEY_CHAT = os.getenv("AZURE_OPENAI_KEY")
@@ -44,8 +46,8 @@ rabbitmq_client = RabbitMQ_Client()
 MONGO_URI = "mongodb://localhost:27017" 
 DATABASE_NAME = "robotarm_db"
 
+# ROBOTTABLE = RedisWrapper()
 ROBOTTABLE = {}
-TASKLIST = {}
 
 
 # API Table 
