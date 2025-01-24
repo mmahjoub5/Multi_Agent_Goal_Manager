@@ -34,7 +34,7 @@ class TaskDocument(NoSQLBaseDocument):
         name = 'Task'
     task: TaskMetaData
     timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())  # Creation timestamp
-    status: STATUS  #"in-progress, complete, failed"
+    status: str  #"in-progress, complete, failed"
     response_ids: List[str] = Field(default_factory=None)
 
     @classmethod

@@ -83,7 +83,7 @@ class RobotCapabilities(BaseModel):
 # Model for the goal specifications
 class GoalSpecifications(BaseModel):
     target_position: Dict[str, float]  # {"x": 1.0, "y": 2.0, "z": 3.0},
-    task_type: TASK_TYPES                 # Example: "move", "pickup", etc.
+    task_type: str                 # Example: "move", "pickup", etc.
     additional_parameters: Optional[Dict[str, float]] = {}  # Any other task-specific parameters
 
 # Model for robot locations (positions of robots at the start)

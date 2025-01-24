@@ -3,7 +3,7 @@ import os
 import opik
 from  shared.rabbitmq_manager import RabbitMQ_Client
 from pydantic import BaseModel
-
+import logging
 # from cache.redis import RedisWrapper
 # Load environment variables at the start of your application
 load_dotenv()
@@ -76,3 +76,4 @@ API_TABLE = {
 }
  
 
+logger = logging.getLogger(__name__)

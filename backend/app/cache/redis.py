@@ -1,12 +1,13 @@
 import redis
 import json
 
+
 class RedisWrapper:
     def __init__(self, redis_host="localhost", redis_port=6379, db=0):
         # Initialize Redis client
         self.redis = redis.Redis(host=redis_host, port=redis_port, db=db, decode_responses=True)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key): 
         # Retrieve and deserialize the value from Redis
         value = self.redis.get(key)
         if value is None:

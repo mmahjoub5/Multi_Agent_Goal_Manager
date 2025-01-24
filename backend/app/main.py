@@ -1,7 +1,7 @@
 from fastapi import FastAPI, BackgroundTasks, HTTPException
 from typing import Dict
 from  backend.app.configs.auto_gen import autogen_agent_config
-from  backend.app.configs.config import ROBOTTABLE
+from  backend.app.configs.config import ROBOTTABLE, logger
 from  shared.models import *
 from  backend.app.chains import one_llm_chain, two_llm_chain, autogen_chain, reprompt_llm_chain
 from  backend.app.helpers import templateManager, reprompt_template
@@ -14,11 +14,18 @@ from enum import Enum
 from  backend.app.domain.documents import RobotDocument, TaskDocument
 import time
 import uuid
+from bson.binary import Binary
 import logging
+from backend.app.db.mongo import connection 
+from pymongo.errors import *
+from backend.app.domain.base.nosql import NoSQLBaseDocument
+
 # initialize app
 app = FastAPI()
-logger = logging.getLogger(__name__)
 
+
+# Configure database 
+NoSQLBaseDocument.configure_database_connection("robotarm_db")
 
 class TASK_CONTROLLER_TYPE(Enum):
     ONE_LLM = "one_llm"
@@ -184,7 +191,7 @@ def register_robot(packet:RegisterRobotRequest):
     if robot_id in ROBOTTABLE:
         logger.error(f"Robot ID {robot_id} already exists in ROBOTTABLE")
         raise HTTPException(status_code=400, detail=f"Robot ID {robot_id} already exists in ROBOTTABLE")
-    # Combine robot_controls and robot_computations into one list
+   
     
     # Validate robot_doc and extract possible tasks
     if not hasattr(robot_doc.robot, "possible_tasks") or not isinstance(robot_doc.robot.possible_tasks, list):
@@ -240,7 +247,6 @@ def delete_robot_by_id(robot_id:str, response_model = DeleteRobotResponse):
         logger.error(f"Failed to retrieve RobotDocument: {e}")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: Failed to recieve document {e}")
         
-    
     return DeleteRobotResponse(status=True)
     
 
@@ -274,65 +280,80 @@ def registerTask(packet:RegisterTaskRequest):
      # Step 1: Extract task data and create TaskDocument
     task = packet.task
     try:
-        task_doc = TaskDocument(task=task.model_dump(), 
+        task_doc = TaskDocument(task=task, 
                                 status=STATUS.IN_PROGRESS.value, # TODO: Neeed to make this pending but dont have logic for it yet
                                 response_ids=[])
     except Exception as e:
         logger.error(f"failed to serialize Task Document {e}")
         raise HTTPException(status_code=500, detail="Internal Error: Failed to Serialize request")
     
-    # Step 2: Use `get_or_create` to insert or fetch the task
+    # Step 2: create task document, update robot documents with new task IDs
+    # TODO: make capability to update more than one document 
 
     try:
-        task_doc:TaskDocument = TaskDocument.create(filter_doc=task_doc)
-    except Exception as e:
-        logger.error(f"Failed to create Task Document: {e}")
-        raise HTTPException(status_code=500, detail=f"Internal Server Error: Failed to create document {e}")
-    
-    task_id = task_doc.id
-    robot_id = task_doc.task.robot_id
-
-    # step 3: Update all robot documents with new task IDs
-    try:
+        task_doc:TaskDocument = TaskDocument.create(filter_doc=task_doc.id)
+        task_id = task_doc.id
+        robot_id = task_doc.task.robot_id
         updated_count = RobotDocument.update_document(
             filter={"_id": robot_id},
             update={"$addToSet": {"task_ids": str(task_id)}}
         )
-        # Check if the update was successful
         if updated_count == 0:
             logger.error(f"Failed to update robot with ID {task_doc.task.robot_id}. Robot not found or no changes made.")
-            raise HTTPException(status_code=400, detail=f"Internal Server Error:  Robot not found or no changes made.")
-            
+            task_id = uuid.uuid4()
+            bson_uuid = Binary.from_uuid(task_id)
+
+            number_removed = TaskDocument.remove_document(_id=str(task_id))
+            raise HTTPException(status_code=400, detail=f"Internal Server Error:  ROBOT ID NOT FOUND")
+    except (ConnectionFailure, OperationFailure, WriteError, WriteConcernError) as e:
+        logger.error(f"MongoDB error occurred: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error:")
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
         
-    except Exception as db_error:
-        raise RuntimeError(f"Database operation failed: {db_error}")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error:")
+
+
+
+    
     
     # step 4 update cache 
-    if robot_id not in ROBOTTABLE:
-        raise KeyError(f"{robot_id} has not been registered")
-    ROBOTTABLE[robot_id][task_id] = task_doc
+    # TODO: 
+    # if robot_id not in ROBOTTABLE:
+    #     raise KeyError(f"{robot_id} has not been registered")
+    #ROBOTTABLE[robot_id][task_id] = task_doc
 
-    return RegisterTaskResponse(task_id=task_id,
+    return RegisterTaskResponse(task_id=str(task_id),
                                 status=STATUS.PENDING)
+
 
 
 @app.post("/goalReached", response_model=GoalReachedResponse)
 def goal_reached(packet:GoalReachedRequest):
-    robot_id = GoalReachedRequest.robot_id
-    task_id = GoalReachedRequest.task_id
+    robot_id = packet.robot_id
+    task_id = packet.task_id
     if robot_id in ROBOTTABLE:
         if task_id in ROBOTTABLE[robot_id]:
             task_doc:TaskDocument = ROBOTTABLE[robot_id][task_id]
             try:
                 TaskDocument.update_document(filter={"_id": task_doc.id},
-                                         update={"$set": {"status": STATUS.COMPLETE}})
+                                         update={"$set": {"status": str(STATUS.COMPLETE)}})
             except Exception as e:
                 raise RuntimeError(f"{e}")
         else: 
             raise HTTPException(status_code=404, detail="Task not found")
+        del ROBOTTABLE[robot_id][task_id]
     else:
-        raise HTTPException(status_code=404, detail="Robot not found")
-    del ROBOTTABLE[robot_id][task_id]
+        try:
+            update_count = TaskDocument.update_document(filter={"_id": uuid.UUID(task_id)},
+                                        update={"$set": {"status": str(STATUS.COMPLETE)}})  
+        except Exception as e:
+            logger.error(f"error when updating database{e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error: Unable to update Database")
+        if update_count == 0:
+            logger.error("no documents were updated")
+            raise HTTPException(status_code=400, detail="TASK NOT FOUND")
+    
             
 
     return GoalReachedResponse(

@@ -3,6 +3,7 @@ from backend.app.main import app, ROBOTTABLE
 from shared.models import *
 from backend.tests.sample_json import sample_json_1
 from backend.app.domain.documents import RobotDocument
+from backend.app
 client = TestClient(app)
 
 def test_register_robot_sucess(mocker):
@@ -21,7 +22,6 @@ def test_register_robot_sucess(mocker):
         "/robots/register",
         json=register_robot_doc.model_dump()
     )
-    print(response)
     # Validate response
     assert response.status_code == 200
     data = response.json()
@@ -34,3 +34,4 @@ def test_register_robot_sucess(mocker):
     assert "robot_123" in ROBOTTABLE
     assert ROBOTTABLE["robot_123"]["Doc"] == mock_robot_doc
     assert ROBOTTABLE["robot_123"]["Task_List"] == ["assemble", "inspect"]
+
