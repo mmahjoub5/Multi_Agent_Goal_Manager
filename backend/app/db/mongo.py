@@ -21,5 +21,4 @@ class MongoDatabaseConnector:
 
         return cls._instance
 
-
 connection = MongoDatabaseConnector()

@@ -1,6 +1,20 @@
-from pydantic import BaseModel, field_validator, field_validator, ValidationInfo, model_validator
+from pydantic import BaseModel, field_validator, field_validator, ValidationInfo, model_validator, Field
 from typing import List, Dict, Optional, Union
 import re 
+from enum import Enum
+from datetime import datetime
+
+class STATUS(Enum):
+    PENDING = "pending"
+    IN_PROGRESS = "inprogress"
+    COMPLETE = "complete"
+    FAILED = "failed"
+
+class TASK_TYPES(Enum):
+    PICK_UP = "pickup"
+    DROP = "drop"
+    MOVE = "move"
+
 class Enviroment(BaseModel):
     obstacles: Optional[List[List[Union[float,int]]]]
     Position:List[Union[float,int]]
@@ -17,7 +31,6 @@ class TaskRequest(BaseModel):
 # Define output structure
 class TaskResponse(BaseModel):
     message: List[Dict[str,str]]
-
 
 
 
@@ -66,33 +79,79 @@ class RobotCapabilities(BaseModel):
     sensors: Optional[List[str]] = []         # List of sensors available (e.g., "camera", "lidar")
     other_features: Optional[List[str]] = []  # Any other features
     joints: Optional[List[Joints]]              # Joint capabilities based on URDF of the robot 
+
 # Model for the goal specifications
 class GoalSpecifications(BaseModel):
-    target_position: Optional[List[float]] = None  # Example: [x, y, z] for 3D space
-    task_type: Optional[str] = None                # Example: "move", "pickup", etc.
-    additional_parameters: Optional[Dict[str, str]] = {}  # Any other task-specific parameters
+    target_position: Dict[str, float]  # {"x": 1.0, "y": 2.0, "z": 3.0},
+    task_type: str                 # Example: "move", "pickup", etc.
+    additional_parameters: Optional[Dict[str, float]] = {}  # Any other task-specific parameters
 
 # Model for robot locations (positions of robots at the start)
 class RobotLocation(BaseModel):
-    robot_id: str
+    robot_id: Optional[str]
     position: List[float]  # Example: [x, y, z] coordinates of the robot
 
 
 
-# Main data model for the request body
-class SetGoalRequest(BaseModel):
+class RobotMetaData(BaseModel):
     # Meta data about the environment
-    robot_type: str  # Type of robot(s) involved (e.g., 'robot_arm', 'mobile_robot')
+    robot_type: str = Field(..., description="Type of the robot. This field is required.") # Type of robot(s) involved (e.g., 'robot_arm', 'mobile_robot')
     num_robots: int  # Number of robots involved in the task
-    robot_capabilities: List[RobotCapabilities]  # Capabilities for each robot
+    robot_capabilities: Optional[List[RobotCapabilities]] = None# Capabilities for each robot
     robot_locations: List[RobotLocation]  # Locations of the robots at the start of the task
-    task_description: str  # Description of the task the client is asking
     environment_constraints: Optional[Dict[str, str]] = {}  # Constraints for the environment (e.g., obstacles, boundaries)
-    goal_specifications: GoalSpecifications  # Specifications for the goal of the task
-    task_controller_type: str # autogen, oneLLM, TWOLLM
     possible_tasks:List[Dict]
 
-class SetGoalResponse(BaseModel):
-    topicNames: List[str]
-    time:str
+
+class GetAllRobotsResponse(BaseModel):
+    robots: List[RobotMetaData]
+
+class GetRobotByIDResponse(BaseModel):
+    robot: RobotMetaData
+    
+
+# Main data model for the request body
+class RegisterRobotRequest(BaseModel):
+    robot: RobotMetaData
+
+class DeleteRobotResponse(BaseModel):
+    status: bool
+    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())  # Creation timestamp
+
+
+
+
+class TaskMetaData(BaseModel):
+    name: str
+    robot_id:str
+    goal_specifications: GoalSpecifications  # Specifications for the goal of the task
+    task_controller_type: str # autogen, oneLLM, TWOLLM
+    task_description: str  # Description of the task the client is asking
+
+
+class RegisterTaskRequest(BaseModel):
+    task: TaskMetaData
+
+class RegisterTaskResponse(BaseModel):
+    task_id:str
+    status:STATUS
+class ReachedGoalRequest(BaseModel):
+    robot_id: str  # robot id 
+    task_id: str # task id
+    pass
+
+class RegisterRobotResponse(BaseModel):
+    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())  # Creation timestamp
+    robot_id: str
+
+
+class GoalReachedRequest(BaseModel):
+    robot_id: str
+    task_id: str
+    pass
+class GoalReachedResponse(BaseModel):
+    status: STATUS
+    message: Optional[str] = None  # Additional info (optional)
+    pass
+
 

@@ -3,16 +3,21 @@ from pydantic import UUID4, BaseModel, Field
 from pymongo import errors
 from typing import Generic, Type, TypeVar
 from  backend.app.db.mongo import connection
-from  backend.app.configs.config import DATABASE_NAME
+from  backend.app.configs.config import logger
 from abc import ABC
+import logging
 
 
-_database = connection.get_database(DATABASE_NAME)
 
 T = TypeVar("T", bound="NoSQLBaseDocument")
 
+
+
 class NoSQLBaseDocument(BaseModel, Generic[T], ABC):
     id: UUID4 = Field(default_factory=uuid.uuid4)
+
+    _database = None
+    
 
     def __eq__(self, value: object) -> bool:
         """
@@ -39,6 +44,15 @@ class NoSQLBaseDocument(BaseModel, Generic[T], ABC):
         """
         return hash(self.id)
     
+
+
+    @classmethod
+    def configure_database_connection(cls,database:str):
+        cls._database = connection.get_database(database)
+
+
+    
+
     @classmethod
     def from_mongo(cls: Type[T], data: dict) -> T:
         """
@@ -85,6 +99,7 @@ class NoSQLBaseDocument(BaseModel, Generic[T], ABC):
             if isinstance(value, uuid.UUID):
                 parsed[key] = str(value)
         
+        logging.debug(f"MongoDB-Compatible Document: {parsed}")
         return parsed
     
     def model_dump(self: T, **kwargs) -> dict:
@@ -105,7 +120,19 @@ class NoSQLBaseDocument(BaseModel, Generic[T], ABC):
 
         return dict_
     
-    def save(self: T, **kwargs) -> T | None:
+    @classmethod
+    def get_collection(cls):
+        """
+        Get the MongoDB collection for this model.
+
+        Returns:
+            pymongo.collection.Collection: The collection object.
+        """
+        if cls._database is None:
+            raise RuntimeError("Database is not configured. Call 'configure_database' first.")
+        return cls._database[cls.get_collection_name()]
+    
+    def save(self: T, session=None, **kwargs) -> T | None:
         """
         Save the current document instance to MongoDB.
 
@@ -115,16 +142,47 @@ class NoSQLBaseDocument(BaseModel, Generic[T], ABC):
         Returns:
             T | None: The saved document if successful, otherwise None.
         """
-        collection = _database[self.get_collection_name()]
+        collection = self.__class__.get_collection()
         try:
-            collection.insert_one(self.to_mongo(**kwargs))
+            collection.insert_one(self.to_mongo(**kwargs), session=session)
 
             return self
         except errors.WriteError:
-            print("Failed to insert document.")
-
+            print(f"Failed to insert document. {errors.WriteError}")
             return None
     
+    @classmethod
+    def create(cls: Type[T], filter_doc:T | dict, session=None) -> T:
+        """
+        Create and save a new document in the database.
+
+        Args:
+            data (T | dict): Data to create the document. Can be a dictionary or an instance of the class.
+
+        Returns:
+            T: The newly created document instance.
+
+        Raises:
+            ValueError: If the provided data is invalid.
+            RuntimeError: If saving the document fails.
+        """
+        collection = cls.get_collection()
+        if isinstance(filter_doc, cls):
+            filter_doc = filter_doc.to_mongo(exclude_unset=True)
+        elif filter_doc is None:
+            filter_doc = {}
+        try: 
+            new_instance = cls(**filter_doc)
+        except errors.OperationFailure as e:
+            raise RuntimeError("Failed to serialize document")
+        
+        new_instance = new_instance.save(session=session)
+        if new_instance:
+            return new_instance
+        if not new_instance:
+            raise RuntimeError("Failed to save the new document to the database.")
+       
+
     @classmethod
     def get_or_create(cls: Type[T], filter_doc:T | dict, **filter_options) -> T:
         """
@@ -141,7 +199,7 @@ class NoSQLBaseDocument(BaseModel, Generic[T], ABC):
         Raises:
             errors.OperationFailure: If a database operation fails.
         """
-        collection = _database[cls.get_collection_name()]
+        collection = cls.get_collection()
 
         if isinstance(filter_doc, cls):
             filter_doc = filter_doc.to_mongo(exclude_unset=True)
@@ -169,7 +227,7 @@ class NoSQLBaseDocument(BaseModel, Generic[T], ABC):
     
     @classmethod
     def bulk_insert(cls: Type[T], documents: list[T], **kwargs) -> bool:
-        collection = _database[cls.get_collection_name()]
+        collection = cls.get_collection()
         try:
             collection.insert_many(doc.to_mongo(**kwargs) for doc in documents)
 
@@ -181,7 +239,7 @@ class NoSQLBaseDocument(BaseModel, Generic[T], ABC):
 
     @classmethod
     def find(cls: Type[T], **filter_options) -> T | None:
-        collection = _database[cls.get_collection_name()]
+        collection = cls.get_collection()
         try:
             instance = collection.find_one(filter_options)
             if instance:
@@ -194,11 +252,32 @@ class NoSQLBaseDocument(BaseModel, Generic[T], ABC):
             return None
 
     @classmethod
-    def bulk_find(cls: Type[T], **filter_options) -> list[T]:
-        collection = _database[cls.get_collection_name()]
+    def bulk_find(cls: Type[T],  **filter_options) -> list[T]:
+        collection = cls.get_collection()
         try:
             instances = collection.find(filter_options)
-            return [document for instance in instances if (document := cls.from_mongo(instance)) is not None]
+            documents = []
+            for instance in list(instances):
+                document = cls.from_mongo(instance)
+                if document is not None:
+                    documents.append(document)
+            return documents
+        except errors.OperationFailure:
+            print("Failed to retrieve documents")
+
+            return []
+        
+    @classmethod
+    def find_all(cls: Type[T],  **filter_options) -> list[T]:
+        collection = cls.get_collection()
+        try:
+            instances = collection.find({})
+            documents = []
+            for instance in list(instances):
+                document = cls.from_mongo(instance)
+                if document is not None:
+                    documents.append(document)
+            return documents
         except errors.OperationFailure:
             print("Failed to retrieve documents")
 
@@ -211,3 +290,41 @@ class NoSQLBaseDocument(BaseModel, Generic[T], ABC):
                 "Document should define an Settings configuration class with the name of the collection."
             )
         return cls.Settings.name
+    
+    @classmethod
+    def remove_document(cls:Type[T], **filter_options) :
+        """Remove a document from the MongoDB collection based on filter options.
+
+        Args:
+            **filter_options: Key-value pairs to filter the document(s) to be deleted.
+
+        Returns:
+            int: The number of documents deleted (0 or 1 for delete_one).
+        """
+        collection = cls.get_collection()
+        try:
+            result = collection.delete_one(filter=filter_options)
+            return result.deleted_count
+        except errors.OperationFailure:
+            print("Failed to retrieve documents")
+            return 0
+        
+    @classmethod 
+    def update_document(cls:Type[T], filter:dict, update:dict, **kwargs):
+        """
+        Update documents in the collection based on a filter and update query.
+
+        Args:
+            filter (dict): The filter query to match documents.
+            update (dict): The update operation to perform.
+            **kwargs: Additional options for the update operation.
+
+        Returns:
+            int: The number of documents updated.
+        """
+        collection = cls.get_collection()
+        try:
+            result = collection.update_one(filter=filter, update=update)
+            return result.matched_count, result.modified_count
+        except errors.OperationFailure as e:
+            raise RuntimeError(f"Failed to update documents: {e}")
