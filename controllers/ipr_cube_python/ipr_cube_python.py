@@ -15,11 +15,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 
 from  controllers.ipr_cube_python.libraries.ikpy_wrapper import IKPY_WRAPPER
 from  controllers.ipr_cube_python.libraries.api_client import SYNC_APIClient, ASYNC_APIClient
-from  controllers.ipr_cube_python.json.robot_capability import robot_capability_json
 from  shared.models import *
 from  controllers.ipr_cube_python.libraries.api_client import SYNC_APIClient, ASYNC_APIClient
-from  controllers.ipr_cube_python.json.robot_capability import robot_capability_json
-from  shared.models import TaskRequest, SetGoalRequest
+from  controllers.ipr_cube_python.json.robot_capability import robot_capability_json, task_register_json
+from  shared.models import *
 from  shared.rabbitmq_manager import RabbitMQ_Client, RabbitMQConsumerManager
 from  controllers.ipr_cube_python.libraries.robot_controller_manager import Robot_Control_Manager
 from time import sleep
@@ -49,19 +48,10 @@ rabbitmq_client = RabbitMQ_Client()
 # Initialize threading event
 end_event = threading.Event()
 # client library 
-url = "http://127.0.0.1:8000"
+url = "http://127.0.0.1:8080"
 
 client = SYNC_APIClient(url)
-json_env = {
-    "environment": {
-        "obstacles": [[]],
-        "Position": [0.0, 0.0, 0.0,0.0,0.0,0.0]
-    },
-    "robot_id": "robot_0",
-    "task_controller_type": "one_llm",
-    "task_controller_model": "GPT4o"
 
-}
 
 def convert_to_floats(lst_str):
     # Check if the string is a valid list-like structure with numbers
@@ -76,10 +66,7 @@ def convert_to_floats(lst_str):
 
 
 consumer_client = RabbitMQConsumerManager(rabbitmq_client=rabbitmq_client)
-taskRequest = TaskRequest(**json_env)
 
-goalRequest = SetGoalRequest(**robot_capability_json)
-task_look_up_table = copy.deepcopy(goalRequest.possible_tasks)
 ipr = IPR()
 ik_wrapper = IKPY_WRAPPER(urdf=urdf)
 controller_manager = Robot_Control_Manager(ipr_object=ipr, ikpy_wrapper_object=ik_wrapper)
@@ -112,12 +99,43 @@ def on_task_feedback_callback(ch, method, properties, body):
         raise SystemError("Error: Invalid JSON format")
     
 
-print("post request")
-response = client.post("/setGoal", data=goalRequest.model_dump())
-print(response)
-# print("message to task request ")
-# rabbitmq_client.send_message("task_request", message=taskRequest.model_dump())
-# consumer_client.start_consumer("task_feedback", callback=on_task_feedback_callback)
+register_robot_doc = RegisterRobotRequest(**robot_capability_json)
+response = client.post(
+        "/robots/register",
+        data=register_robot_doc.model_dump()
+    )
+
+register_robot_response = RegisterRobotResponse(**response)
+
+print("response:", response)
+
+register_task_doc = RegisterTaskRequest(**task_register_json)
+register_task_doc.task.robot_id = register_robot_response.robot_id
+response = client.post(
+        "/task/register",
+        data=register_task_doc.model_dump()
+    )
+register_task_response = RegisterTaskResponse(**response)
+print("response:", response)
+
+
+print("message to task request ")
+json_env = {
+    "environment": {
+        "obstacles": [[]],
+        "Position": [0.0, 0.0, 0.0,0.0,0.0,0.0]
+    },
+    "robot_id": "robot_0",
+    "task_controller_type": "one_llm",
+    "task_controller_model": "GPT4o",
+    "task_id": "",
+
+}
+taskRequest = TaskRequest(**json_env)
+taskRequest.robot_id = register_robot_response.robot_id
+taskRequest.task_id = register_task_response.task_id
+rabbitmq_client.send_message("task_request", message=taskRequest.model_dump())
+consumer_client.start_consumer("task_feedback", callback=on_task_feedback_callback)
 
 
 

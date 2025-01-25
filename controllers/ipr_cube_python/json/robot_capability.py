@@ -1,5 +1,5 @@
 import math
-robot_capability_json = {
+robot_capability_json = {"robot":{
   "robot_type": "6dof_robot",
   "num_robots": 1,
   "robot_capabilities": [
@@ -79,15 +79,7 @@ robot_capability_json = {
     "obstacles": "No obstacles in the path",
     "boundary": "Stay within the working area"
   },
-  "goal_specifications": {
-    "target_position": [3.44e-5, -.30, 0],
-    "task_type": "pickup",
-    "additional_parameters": {
-      "object_type": "box",
-      "object_weight": "2kg"
-    }
-  },
-  "task_controller_type": "autogen",
+ 
   "possible_tasks": 
                    [
                         {
@@ -147,4 +139,22 @@ robot_capability_json = {
                         }
                      ]
                     
+}
+}
+
+task_register_json = {
+    "task": {
+        "name": "Pick and Place Task",
+        "robot_id": "",
+        "goal_specifications": {
+            "target_position": {
+                "x": 3.44e-5,
+                "y": -.30,
+                "z": 0
+            },
+            "task_type": "pickup"
+        },
+        "task_controller_type": "autogen",
+        "task_description": "Move the object from point A to point B while avoiding obstacles.",
+    }
 }

@@ -63,6 +63,7 @@ class RabbitMQConsumerManager():
     def __init__(self, rabbitmq_client:RabbitMQ_Client):
         self.client = rabbitmq_client
         self.consumers = {}
+        self.lock = threading.Lock()
 
         
     def start_consumer(self, queue_name, callback):

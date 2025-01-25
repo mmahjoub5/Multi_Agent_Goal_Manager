@@ -52,6 +52,7 @@ def on_task_request_callback(ch, method, properties, body):
     
     
     robotDoc:RobotDocument = ROBOTTABLE[packet.robot_id]["Doc"]
+    taskDoc:TaskDocument = ROBOTTABLE[packet.robot_id][packet.task_id]
     if robotDoc is None:
         raise KeyError("robot id not in robot table, so end point /setGoal was never called")
     
@@ -59,7 +60,7 @@ def on_task_request_callback(ch, method, properties, body):
                             tasks=robotDoc.robot.possible_tasks,
                             robot_capabilities=robotDoc.robot.robot_capabilities[0],
                             robot_type=robotDoc.robot.robot_type,
-                            goal=robotDoc.robot.goal_specifications)
+                            goal=taskDoc.task.goal_specifications)
     
     task_controller_type = TASK_CONTROLLER_TYPE[packet.task_controller_type.upper()]
     match task_controller_type:
@@ -200,11 +201,12 @@ def register_robot(packet:RegisterRobotRequest):
 
 
     # UPDATE CACHE 
-    ROBOTTABLE[robot_id] = {
-        "Doc": robot_doc,
-        "Task_List": task_list,
-    }   
-    
+    with consumer_manager.lock:
+        ROBOTTABLE[str(robot_id)] = {
+            "Doc": robot_doc,
+            "Task_List": task_list,
+        }   
+        
 
     response = RegisterRobotResponse(
                             robot_id = str(robot_id)
@@ -318,9 +320,10 @@ def registerTask(packet:RegisterTaskRequest):
     
     # step 4 update cache 
     # TODO: 
-    # if robot_id not in ROBOTTABLE:
-    #     raise KeyError(f"{robot_id} has not been registered")
-    #ROBOTTABLE[robot_id][task_id] = task_doc
+    if robot_id not in ROBOTTABLE:
+        raise KeyError(f"{robot_id} has not been registered")
+    with consumer_manager.lock:
+        ROBOTTABLE[str(robot_id)][str(task_id)] = task_doc
 
     return RegisterTaskResponse(task_id=str(task_id),
                                 status=STATUS.PENDING)
