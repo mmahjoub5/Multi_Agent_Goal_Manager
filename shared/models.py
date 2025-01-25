@@ -95,7 +95,7 @@ class RobotLocation(BaseModel):
 
 class RobotMetaData(BaseModel):
     # Meta data about the environment
-    robot_type: str  # Type of robot(s) involved (e.g., 'robot_arm', 'mobile_robot')
+    robot_type: str = Field(..., description="Type of the robot. This field is required.") # Type of robot(s) involved (e.g., 'robot_arm', 'mobile_robot')
     num_robots: int  # Number of robots involved in the task
     robot_capabilities: Optional[List[RobotCapabilities]] = None# Capabilities for each robot
     robot_locations: List[RobotLocation]  # Locations of the robots at the start of the task

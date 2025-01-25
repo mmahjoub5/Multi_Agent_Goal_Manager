@@ -325,6 +325,6 @@ class NoSQLBaseDocument(BaseModel, Generic[T], ABC):
         collection = cls.get_collection()
         try:
             result = collection.update_one(filter=filter, update=update)
-            return result.modified_count
+            return result.matched_count, result.modified_count
         except errors.OperationFailure as e:
             raise RuntimeError(f"Failed to update documents: {e}")

@@ -50,20 +50,31 @@ sample_json_1 = { "robot":
 }
 
 task_request = {
-  "task": {
-    "name": "Pick and Place Task",
-    "robot_id": "robot_123",
-    "goal_specifications": {
-      "position": {"x": 1.0, "y": 2.0, "z": 3.0},
-      "orientation": {"roll": 0.0, "pitch": 1.57, "yaw": 0.0},
-      "tolerance": 0.01
-    },
-    "task_controller_type": "autogen",
-    "task_description": "Move the object from point A to point B while avoiding obstacles.",
-    "goals": {
-      "position": {"x": 5.0, "y": 3.0, "z": 2.0},
-      "orientation": {"roll": 0.0, "pitch": 1.57, "yaw": 3.14},
-      "tolerance": 0.05
+    "task": {
+        "name": "Pick and Place Task",
+        "robot_id": "b2f89ea2-05d8-4db0-9b2f-3d406bc6bd4e",
+        "goal_specifications": {
+            "target_position": {
+                "x": 1.0,
+                "y": 2.0,
+                "z": 3.0
+            },
+            "task_type": "pickup"
+        },
+        "task_controller_type": "autogen",
+        "task_description": "Move the object from point A to point B while avoiding obstacles.",
+        "goals": {
+            "position": {
+                "x": 5.0,
+                "y": 3.0,
+                "z": 2.0
+            },
+            "orientation": {
+                "roll": 0.0,
+                "pitch": 1.57,
+                "yaw": 3.14
+            },
+            "tolerance": 0.05
+        }
     }
-  }
 }

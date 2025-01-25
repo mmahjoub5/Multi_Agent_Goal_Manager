@@ -16,7 +16,7 @@ class RobotDocument(NoSQLBaseDocument):
     # robot_locations: List[RobotLocation]  # Locations of the robots at the start of the task
     # environment_constraints: Optional[Dict[str, str]] = {}  # Constraints for the environment (e.g., obstacles, boundaries)
     # possible_tasks:List[Dict]
-    robot: RobotMetaData
+    robot: RobotMetaData 
     task_ids: List[str] = Field(default_factory=None)
     timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())  # Creation timestamp
     @classmethod
