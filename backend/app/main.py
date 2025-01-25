@@ -1,48 +1,27 @@
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks, HTTPException
 from typing import Dict
 from  backend.app.configs.auto_gen import autogen_agent_config
-from  backend.app.configs.config import ROBOTTABLE, TASKLIST
-import pdb
-from  shared.models import TaskRequest, TaskResponse, SetGoalRequest, SetGoalResponse, TaskFeedback
+from  backend.app.configs.config import ROBOTTABLE, logger
+from  shared.models import *
 from  backend.app.chains import one_llm_chain, two_llm_chain, autogen_chain, reprompt_llm_chain
 from  backend.app.helpers import templateManager, reprompt_template
 from  shared.rabbitmq_manager import RabbitMQConsumerManager
-from datetime import datetime
 import json
 from pydantic import ValidationError
 from  backend.app.configs.config import rabbitmq_client
 from enum import Enum
-import threading
-from  backend.app.domain.documents import RobotDocument
-import re
+from  backend.app.domain.documents import RobotDocument, TaskDocument
+from backend.app.db.mongo import connection 
+from pymongo.errors import *
+from backend.app.domain.base.nosql import NoSQLBaseDocument
 import time
+
 # initialize app
 app = FastAPI()
-consumer_manager = RabbitMQConsumerManager(rabbitmq_client)
 
 
-
-
-
-'''
-    EndPoint set by request to start set goal and connection to the high level controller
-    1. Client will provide meta data message about enviroment(hard coded for now):
-        - robot type(s)
-        - Number of Robots
-        - Robot Capabilities
-    2. Robot Locations
-    3. Goal Specifications
-    4. Task Description
-        - what the task the client is asking 
-    5. Environment Constraints
-    6. Goal Specifications:
-    7. Communication Protocol (dont need for now)
-    8. Performance Metrics (dont need for now)
-    9.sets up RabitMQ client
-    10. sets up Autogen/LLMClient objects
-    11. sets up call backs for all the message queue topics 
-
-'''
+# Configure database 
+NoSQLBaseDocument.configure_database_connection("test_database")
 
 class TASK_CONTROLLER_TYPE(Enum):
     ONE_LLM = "one_llm"
@@ -52,7 +31,7 @@ class TASK_CONTROLLER_TYPE(Enum):
 def validate_and_process_tasks(tasks_json,robot_id):
     """Validate and process the task JSON."""
     for i, val in enumerate(tasks_json["TASK"]):
-        val["tasks"] = TASKLIST[robot_id]
+        val["tasks"] = ROBOTTABLE[robot_id]["Task_List"]
     return TaskFeedback(**tasks_json)
 
 def on_task_request_callback(ch, method, properties, body):
@@ -72,15 +51,15 @@ def on_task_request_callback(ch, method, properties, body):
        
     
     
-    robotDoc:RobotDocument = ROBOTTABLE[packet.robot_id]
+    robotDoc:RobotDocument = ROBOTTABLE[packet.robot_id]["Doc"]
     if robotDoc is None:
         raise KeyError("robot id not in robot table, so end point /setGoal was never called")
     
     prompt = templateManager(environment=packet.environment, 
-                            tasks=robotDoc.possible_tasks,
-                            robot_capabilities=robotDoc.robot_capabilities[0],
-                            robot_type=robotDoc.robot_type,
-                            goal=robotDoc.goal_specifications)
+                            tasks=robotDoc.robot.possible_tasks,
+                            robot_capabilities=robotDoc.robot.robot_capabilities[0],
+                            robot_type=robotDoc.robot.robot_type,
+                            goal=robotDoc.robot.goal_specifications)
     
     task_controller_type = TASK_CONTROLLER_TYPE[packet.task_controller_type.upper()]
     match task_controller_type:
@@ -117,76 +96,279 @@ def on_task_request_callback(ch, method, properties, body):
         raise SystemError("GPT CONTROLLER RESPONSE IS NONE")
 
 
-    
-@app.post("/setGoal", response_model=SetGoalResponse)
-def setGoal_and_startQs(packet:SetGoalRequest):
-    # get robot meta data 
+consumer_manager = RabbitMQConsumerManager(rabbitmq_client)
+consumer_manager.start_consumer("task_request", callback=on_task_request_callback)
 
-    robot_doc = RobotDocument.get_or_create_from_request(request=packet)
 
-    robot_id = packet.robot_locations[0].robot_id 
-    # Combine robot_controls and robot_computations into one list
-    
-    ROBOTTABLE[robot_id] = robot_doc
-    TASKLIST[robot_id] = [task["task_name"] for task in robot_doc.possible_tasks]
-    
+'''
+
+    ROBOTS
+
+'''
+@app.get("/robots")
+def get_all_robot(response_model=GetAllRobotsResponse):
+    """
+    Retrieves a list of all robots from the database and returns their metadata.
+
+    Response:
+    - Returns a `GetAllRobotsResponse` containing a list of robots.
+
+    Raises:
+    - RuntimeError: If any exception occurs during the data fetching or serialization process.
+    """
+    robots  = []
+    try :
+        robots = RobotDocument.find_all()
+        robots =[i.robot for i in robots]
+    except Exception as e:
+        logger.error(f"Serialization error: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error: Serialization Failed")
+    return GetAllRobotsResponse(robots=robots)
     
 
-    # TODO: update robot meta data and id to DB
-    consumer_manager.start_consumer("task_request", callback=on_task_request_callback)
+@app.get("/robots/{robot_id}")
+def get_robot_by_id(robot_id:str, response_model=GetRobotByIDResponse):
+    """
+    Retrieves metadata for a specific robot identified by its ID.
 
-    print("Consumer thread started, processing RabbitMQ messages in the background.")
-    response = SetGoalResponse(
-                            topicNames=[f"task_request", f"task_feedback"], 
-                            time = datetime.utcnow().isoformat())
+    Parameters:
+    - robot_id (str): The unique identifier of the robot to retrieve.
+
+    Response:
+    - Returns a `GetRobotByIDResponse` containing the metadata of the specified robot.
+
+    Raises:
+    - RuntimeError: If any exception occurs during the database query or serialization process.
+    """
+    try :
+        robot_doc:RobotDocument = RobotDocument.find(_id=robot_id)
+    except Exception as e:
+        logger.error(f"Database error: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error: Database Error")
+    if robot_doc is None:
+        logger.error(f"Robot {robot_id} not found")
+        raise HTTPException(status_code=400, detail="Robot not found")
+    return GetRobotByIDResponse(robot=robot_doc.robot)
+
+
+
+
+@app.post("/robots/register", response_model=RegisterRobotResponse)
+def register_robot(packet:RegisterRobotRequest):
+    """
+    Registers a new robot and updates the global ROBOTTABLE with its details.
+
+    Parameters:
+    - packet (RegisterRobotRequest): The request payload containing robot information.
+
+    Response:
+    - Returns a `RegisterRobotResponse` with the registration timestamp and the robot ID.
+
+    Raises:
+    - RuntimeError: If robot creation/retrieval fails.
+    - KeyError: If the robot ID already exists in the ROBOTTABLE.
+    - ValueError: If the `RobotDocument` does not contain a valid `possible_tasks` list.
+    """
+    try: 
+        robot_doc = RobotDocument(robot=packet.robot,
+                              task_ids=[])
+    except Exception as e:
+        logger.error(f"Serialization error: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error: Serialization Failed")
+
+    try :
+        robot_doc:RobotDocument = RobotDocument.create(filter_doc=robot_doc)
+    except Exception as e:
+        logger.error(f"Failed to create or retrieve RobotDocument: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error: Failed to create or retrieve RobotDocument")
+
+    
+    robot_id = robot_doc.id
+
+    if robot_id in ROBOTTABLE:
+        logger.error(f"Robot ID {robot_id} already exists in ROBOTTABLE")
+        raise HTTPException(status_code=500, detail=f"Robot ID {robot_id} already exists in ROBOTTABLE")
+   
+    
+    # Validate robot_doc and extract possible tasks
+    if not hasattr(robot_doc.robot, "possible_tasks") or not isinstance(robot_doc.robot.possible_tasks, list):
+        logger.error("RobotDocument does not contain a valid 'possible_tasks' list")
+        raise HTTPException(status_code=500,detail="RobotDocument does not contain a valid 'possible_tasks' list")
+
+
+    task_list = [task["task_name"] for task in robot_doc.robot.possible_tasks]
+
+
+    # UPDATE CACHE 
+    ROBOTTABLE[robot_id] = {
+        "Doc": robot_doc,
+        "Task_List": task_list,
+    }   
+    
+
+    response = RegisterRobotResponse(
+                            robot_id = str(robot_id)
+                            )
     return response
+
+
+# remove robot 
+@app.delete("/robots/{robot_id}")
+def delete_robot_by_id(robot_id:str, response_model = DeleteRobotResponse):
+    """
+    Deletes a robot from the system by its ID.
+
+    Parameters:
+    - robot_id (str): The unique identifier of the robot to delete.
+    - response_model (DeleteRobotResponse): The response model indicating the success of the deletion.
+
+    Raises:
+    - HTTPException: If the robot is not found in `ROBOTTABLE` or in the database.
+    - RuntimeError: If an unexpected error occurs during the deletion process.
+
+    Response:
+    - Returns a `DeleteRobotResponse` with:
+        - `status`: Boolean indicating success (`True`).
+        - `time`: The UTC timestamp of the deletion.
+    """
+    # Logic to remove the robot from the system
+    if robot_id not in ROBOTTABLE:
+        logger.warning("Robot not found in robot table")
+        
+    try :
+        number_removed = RobotDocument.remove_document(_id=robot_id)
+    except Exception as e:
+        logger.error(f"Failed to retrieve RobotDocument: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: Failed to recieve document")
+
+    if number_removed == 0:
+        logger.error("Document Not found")
+        raise HTTPException(status_code=400, detail="Document Not found") 
+    
+    return DeleteRobotResponse(status=True)
     
 
 
-@app.post("/goalReached")
-def close_connection(packet:SetGoalRequest):
-   pass
 
+'''
+    TASKS
 
+'''
+#TODO:  Get tasks in the system
+@app.get("/task/")
+def get_all_task():
+    pass
 
-@app.get("/async")
-async def getAsync():
-    return {"value":"you are async gay"}
-
-# end point 
-@app.post("/task")
-def submit_task(task: Dict, background_task: BackgroundTasks):
+#TODO: Get task in system by task id
+@app.get("/task/{task_id}")
+def get_task_by_id():
     pass
 
 
 
 
 
-# @app.post("/taskPlaningTwoGPT", response_model=TaskResponse)
-# def get_task_one_gpt(packet:TaskRequest):
+
+@app.post("/task/register", response_model=RegisterTaskResponse)
+def registerTask(packet:RegisterTaskRequest):
+    """
+    Registers a new task and associates it with a specific robot.
+
+    Args:
+        packet (RegisterTaskRequest): Incoming request with task details.
+
+    Returns:
+        RegisterTaskResponse: Response indicating the task registration status.
+    """
+     # Step 1: Extract task data and create TaskDocument
+    task = packet.task
+    try:
+        task_doc = TaskDocument(task=task, 
+                                status=STATUS.IN_PROGRESS.value, # TODO: Neeed to make this pending but dont have logic for it yet
+                                response_ids=[])
+    except Exception as e:
+        logger.error(f"failed to serialize Task Document {e}")
+        raise HTTPException(status_code=500, detail="Internal Error: Failed to Serialize request")
     
-#     # TODO: do one chat gpt call to create a prompt based on pose and enviroment and maybe history of certain examples 
-#     prompt = templateManager(enviroment=packet.environment, tasks=packet.tasks) 
-#     response = two_llm_chain(prompt)
+    # Step 2: create task document, update robot documents with new task IDs
+    # TODO: make capability to update more than one document 
 
-#     return response.model_dump()
+    try:
+        task_doc:TaskDocument = TaskDocument.create(filter_doc=task_doc)
+        task_id = task_doc.id
+        robot_id = task_doc.task.robot_id
+        updated_count = RobotDocument.update_document(
+            filter={"_id": str(robot_id)},
+            update={"$addToSet": {"task_ids": str(task_id)}}
+        )
+        if updated_count == 0:
+            logger.error(f"Failed to update robot with ID {task_doc.task.robot_id}. Robot not found or no changes made.")
+            number_removed = TaskDocument.remove_document(_id=str(task_id))
+            raise HTTPException(status_code=400, detail=f"Internal Server Error:  ROBOT ID NOT FOUND")
+    except (ConnectionFailure, OperationFailure, WriteError, WriteConcernError) as e:
+        logger.error(f"MongoDB error occurred: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error:")
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error:")
 
 
-# @app.post("/taskPlaningOneGPT4", response_model=TaskResponse)
-# def get_task_two_gpt(packet:TaskRequest):
-#     prompt = templateManager(environment=packet.environment, tasks=packet.tasks)
-#     response = one_llm_chain(prompt)
-#     return response.model_dump()
+
+    
+    
+    # step 4 update cache 
+    # TODO: 
+    # if robot_id not in ROBOTTABLE:
+    #     raise KeyError(f"{robot_id} has not been registered")
+    #ROBOTTABLE[robot_id][task_id] = task_doc
+
+    return RegisterTaskResponse(task_id=str(task_id),
+                                status=STATUS.PENDING)
+
+
+
+@app.post("/task/goalReached", response_model=GoalReachedResponse)
+def goal_reached(packet:GoalReachedRequest):
+    robot_id = packet.robot_id
+    task_id = packet.task_id
+    if robot_id in ROBOTTABLE:
+        if task_id in ROBOTTABLE[robot_id]:
+            task_doc:TaskDocument = ROBOTTABLE[robot_id][task_id]
+            try:
+                TaskDocument.update_document(filter={"_id": task_doc.id},
+                                         update={"$set": {"status": str(STATUS.COMPLETE)}})
+            except Exception as e:
+                raise RuntimeError(f"{e}")
+        else: 
+            raise HTTPException(status_code=404, detail="Task not found")
+        del ROBOTTABLE[robot_id][task_id]
+    else:
+        try:
+            matched_count, modified_count = TaskDocument.update_document(filter={"_id":task_id },
+                                        update={"$set": {"status": "complete"}})  
+        except Exception as e:
+            logger.error(f"error when updating database{e}")
+            raise HTTPException(status_code=500, detail="Internal Server Error: Unable to update Database")
+        if matched_count == 0:
+            logger.error("no documents were updated")
+            raise HTTPException(status_code=404, detail="TASK NOT FOUND")
+        elif modified_count == 0:
+            logger.warning("documents was already updated")
+            
+    
+            
+
+    return GoalReachedResponse(
+        status=STATUS.COMPLETE,
+        message="Task status updated successfully and removed from cache."
+    )
    
-    
-# @app.post("/autogen", response_model=TaskResponse)
-# def get_task(packet:TaskRequest):
-#     prompt = templateManager(newInput=packet)
-    
-#     return response.model_dump()
+   
 
 
-    
+
+
+
 
 
 

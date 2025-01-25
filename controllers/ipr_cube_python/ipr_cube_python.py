@@ -115,9 +115,9 @@ def on_task_feedback_callback(ch, method, properties, body):
 print("post request")
 response = client.post("/setGoal", data=goalRequest.model_dump())
 print(response)
-print("message to task request ")
-rabbitmq_client.send_message("task_request", message=taskRequest.model_dump())
-consumer_client.start_consumer("task_feedback", callback=on_task_feedback_callback)
+# print("message to task request ")
+# rabbitmq_client.send_message("task_request", message=taskRequest.model_dump())
+# consumer_client.start_consumer("task_feedback", callback=on_task_feedback_callback)
 
 
 
