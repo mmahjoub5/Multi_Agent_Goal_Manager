@@ -23,8 +23,10 @@ class Enviroment(BaseModel):
 class TaskRequest(BaseModel):
     environment:Enviroment  # Details of the environment (e.g., objects, obstacles)
     robot_id: str
+    task_id:str
     task_controller_type: str # 
     task_controller_model: str 
+
 
 
 
@@ -135,6 +137,7 @@ class RegisterTaskRequest(BaseModel):
 class RegisterTaskResponse(BaseModel):
     task_id:str
     status:STATUS
+    
 class ReachedGoalRequest(BaseModel):
     robot_id: str  # robot id 
     task_id: str # task id
