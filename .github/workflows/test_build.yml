@@ -12,7 +12,15 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      OPIK_KEY: ${{ secrets.OPIK_API_KEY }}
+      OPIK_KEY: ${{ secrets.OPIK_KEY }}
+      GPT4_ENDPOINT: ${{ secrets.GPT4_ENDPOINT }}
+      AZURE_OPENAI_KEY_GPT_4: ${{ secrets.AZURE_OPENAI_KEY_GPT_4 }}
+      AZURE_OPENAI_KEY_2: ${{ secrets.AZURE_OPENAI_KEY_2 }}
+      AZURE_OPENAI_KEY: ${{ secrets.AZURE_OPENAI_KEY }}
+      AZURE_OPENAI_ENDPOINT_2: ${{ secrets.AZURE_OPENAI_ENDPOINT_2 }}
+      AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+      
+      
 
     services:
       redis:
