@@ -25,7 +25,7 @@ COMPLETION_DEPLOYMENT_NAME = "davinci-002"   # Replace with your deployed model 
 OPIK_KEY = os.getenv('OPIK_KEY')
 if not OPIK_KEY:
     raise RuntimeError("OPIK_API_KEY is not set!")
-opik.configure(api_key=OPIK_KEY)
+# opik.configure(api_key=OPIK_KEY)
  # API version
 CHAT_VERSION = "2024-08-01-preview"  # Update if needed
     # Endpoint URL for the deployment
