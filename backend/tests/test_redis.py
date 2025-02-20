@@ -28,6 +28,24 @@ def test_set_redis_wrapper():
     print("All tests passed.")
 
 
+def test_get_redis_invalid_key():
+    wrapper = RedisWrapper()
+    # Clear the cache to start with a clean state
+    wrapper.clear()
+
+    # Add a value to the Redis cache
+    key = "mykey"
+    value = {"hello": "world"}
+    wrapper.set(key, value)
+
+    # Verify that the value was added using the wrapper's get() method
+    retrieved = wrapper.get(key)
+    assert retrieved == value, "Retrieved value should match the inserted value"
+    
+    assert "key" not in wrapper, "Key should not be in Redis cache"
+
+
+    # Attempt to retrieve a non-existent key from the Redis cache
 
 def test_delete_redis_wrapper():
     wrapper = RedisWrapper()

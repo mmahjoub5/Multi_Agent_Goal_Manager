@@ -179,6 +179,18 @@ def test_register_robot_then_register_task():
     assert task_data.status is not None
     assert task_data.status == STATUS.PENDING
 
+def register_task_without_robot():
+    task = RegisterTaskRequest(**task_request)
+    task.task.robot_id = str("robot_data.robot_id")
+
+    response = client.post(
+        "/task/register",
+        json=task.model_dump()
+    )
+
+    assert response.status_code == 400
+    
+
 def test_goal_reached():
     robot = RobotMetaData(**sample_json_1["robot"])
     # Send the register robot request
@@ -227,8 +239,87 @@ def test_goal_reached():
 
 
 
+def test_goal_reached_invalid_robot():
+    robot = RobotMetaData(**sample_json_1["robot"])
+    # Send the register robot request
+    try:
+        register_robot_doc = RegisterRobotRequest(**sample_json_1)
+    except Exception as e:
+        raise SyntaxError(f"{e}")
+
+    response = client.post(
+        "/robots/register",
+        json=register_robot_doc.model_dump()
+    )
+
+    assert response.status_code == 200
+    robot_data = RegisterRobotResponse(**response.json())
+
+    task = RegisterTaskRequest(**task_request)
+    task.task.robot_id = str(robot_data.robot_id)
+
+    response = client.post(
+        "/task/register",
+        json=task.model_dump()
+    )
+
+    assert response.status_code == 200
+    task_data = RegisterTaskResponse(**response.json())
+
+    assert task_data.task_id is not None
+    assert task_data.status is not None
+    assert task_data.status == STATUS.PENDING
+
+    goal_reached = GoalReachedRequest(robot_id="0000",
+                                      task_id=task_data.task_id)
+    response = client.post(
+        "/task/goalReached",
+        json=goal_reached.model_dump()
+    )
+
+    assert response.status_code == 400
+   
 
 
+def test_goal_reached_invalid_task():
+    robot = RobotMetaData(**sample_json_1["robot"])
+    # Send the register robot request
+    try:
+        register_robot_doc = RegisterRobotRequest(**sample_json_1)
+    except Exception as e:
+        raise SyntaxError(f"{e}")
+
+    response = client.post(
+        "/robots/register",
+        json=register_robot_doc.model_dump()
+    )
+
+    assert response.status_code == 200
+    robot_data = RegisterRobotResponse(**response.json())
+
+    task = RegisterTaskRequest(**task_request)
+    task.task.robot_id = str(robot_data.robot_id)
+
+    response = client.post(
+        "/task/register",
+        json=task.model_dump()
+    )
+
+    assert response.status_code == 200
+    task_data = RegisterTaskResponse(**response.json())
+
+    assert task_data.task_id is not None
+    assert task_data.status is not None
+    assert task_data.status == STATUS.PENDING
+
+    goal_reached = GoalReachedRequest(robot_id=robot_data.robot_id,
+                                      task_id="0000")
+    response = client.post(
+        "/task/goalReached",
+        json=goal_reached.model_dump()
+    )
+
+    assert response.status_code == 400
 
 
 

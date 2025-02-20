@@ -351,7 +351,7 @@ def goal_reached(packet:GoalReachedRequest):
     if key in ROBOTTABLE:
         print(ROBOTTABLE.get(key))
         if ROBOTTABLE.get(key) is None:
-            raise KeyError(f"Task {task_id} not found in ROBOTTABLE")
+            raise HTTPException(status_code=500, detail=f"Task {task_id} not found in ROBOTTABLE")
         task_json = json.loads(ROBOTTABLE.get(key))
 
         task_doc:TaskDocument = TaskDocument(**task_json)
@@ -365,14 +365,15 @@ def goal_reached(packet:GoalReachedRequest):
         del ROBOTTABLE[key]
     else:
         try:
-            matched_count, modified_count = TaskDocument.update_document(filter={"_id":task_id },
+            matched_count, modified_count = TaskDocument.update_document(filter={"_id":task_id , "task.robot_id": robot_id},
                                         update={"$set": {"status": "complete"}})  
+            print(matched_count, modified_count)
         except Exception as e:
             logger.error(f"error when updating database{e}")
             raise HTTPException(status_code=500, detail="Internal Server Error: Unable to update Database")
         if matched_count == 0:
             logger.error("no documents were updated")
-            raise HTTPException(status_code=404, detail="TASK NOT FOUND")
+            raise HTTPException(status_code=400, detail="INTERAL SERVER ERROR: TASK NOT FOUND")
         elif modified_count == 0:
             logger.warning("documents was already updated")
             
