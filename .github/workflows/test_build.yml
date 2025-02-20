@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      OPIK_API_KEY: ${{ secrets.OPIK_API_KEY }}
+      OPIK_KEY: ${{ secrets.OPIK_API_KEY }}
 
     services:
       redis:
