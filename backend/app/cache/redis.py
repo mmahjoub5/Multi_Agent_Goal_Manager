@@ -5,6 +5,7 @@ import json
 class RedisWrapper:
     def __init__(self, redis_host="localhost", redis_port=6379, db=0):
         # Initialize Redis client
+        self.db = db
         self.redis = redis.Redis(host=redis_host, port=redis_port, db=db, decode_responses=True)
 
     def __getitem__(self, key): 
@@ -13,10 +14,7 @@ class RedisWrapper:
         if value is None:
             raise KeyError(f"Key {key} not found in Redis")
         return json.loads(value)
-
-    def __setitem__(self, key, value):
-        # Serialize and store the value in Redis
-        self.redis.set(key, json.dumps(value))
+    
 
     def __delitem__(self, key):
         # Delete the key from Redis
@@ -41,25 +39,18 @@ class RedisWrapper:
             return self.__getitem__(key)
         except KeyError:
             return default
+    
+    def set(self, key, value, ttl=None):
+        # Set a value
+        self.redis.set(key, json.dumps(value), ex=ttl)
+
+    def delete_by_prefix(self, prefix: str):
+        """Delete all keys that start with a given prefix."""
+        keys = self.redis.keys(f"{prefix}*")
+        if keys:
+            self.redis.delete(*keys)
+
 
     def clear(self):
         # Clear all keys in the current Redis database
         self.redis.flushdb()
-
-# # Example Usage
-# ROBOTTABLE = RedisWrapper()
-
-# # Add a robot to ROBOTTABLE
-# ROBOTTABLE["robot_1"] = {
-#     "Doc": {"id": "robot_1", "name": "RobotOne", "type": "TypeA"},
-#     "Task_List": ["task1", "task2"]
-# }
-
-# # Retrieve a robot
-# print(ROBOTTABLE["robot_1"])
-
-# # Check if a robot exists
-# print("robot_1" in ROBOTTABLE)
-
-# # Delete a robot
-# del ROBOTTABLE["robot_1"]

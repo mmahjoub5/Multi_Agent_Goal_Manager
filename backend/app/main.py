@@ -30,8 +30,19 @@ class TASK_CONTROLLER_TYPE(Enum):
 
 def validate_and_process_tasks(tasks_json,robot_id):
     """Validate and process the task JSON."""
-    for i, val in enumerate(tasks_json["TASK"]):
-        val["tasks"] = ROBOTTABLE[robot_id]["Task_List"]
+    # Retrieve robot data from Redis using the key (assumes ROBOTTABLE.get returns a JSON string)
+    robot_key = f"robot:{robot_id}"
+    raw_robot_data = ROBOTTABLE.get(robot_key)
+    if raw_robot_data is None:
+        raise KeyError(f"Robot data for {robot_id} not found in Redis")
+    
+    # Deserialize the robot data (it should contain at least the Task_List field)
+    robot_data = json.loads(raw_robot_data)
+
+    # Update each task entry with the Task_List from the robot data
+    for task in tasks_json["TASK"]:
+        task["tasks"] = robot_data.get("Task_List", [])
+
     return TaskFeedback(**tasks_json)
 
 def on_task_request_callback(ch, method, properties, body):
@@ -53,7 +64,7 @@ def on_task_request_callback(ch, method, properties, body):
     
     robotDoc:RobotDocument = ROBOTTABLE[packet.robot_id]["Doc"]
     taskDoc:TaskDocument = ROBOTTABLE[packet.robot_id][packet.task_id]
-    if robotDoc is None:
+    if str(robotDoc) is None:
         raise KeyError("robot id not in robot table, so end point /setGoal was never called")
     
     prompt = templateManager(environment=packet.environment, 
@@ -185,8 +196,9 @@ def register_robot(packet:RegisterRobotRequest):
 
     
     robot_id = robot_doc.id
+    key = f"robot:{str(robot_id)}" 
 
-    if robot_id in ROBOTTABLE:
+    if key in ROBOTTABLE:
         logger.error(f"Robot ID {robot_id} already exists in ROBOTTABLE")
         raise HTTPException(status_code=500, detail=f"Robot ID {robot_id} already exists in ROBOTTABLE")
    
@@ -200,14 +212,15 @@ def register_robot(packet:RegisterRobotRequest):
     task_list = [task["task_name"] for task in robot_doc.robot.possible_tasks]
 
 
-    # UPDATE CACHE 
-    with consumer_manager.lock:
-        ROBOTTABLE[str(robot_id)] = {
-            "Doc": robot_doc,
-            "Task_List": task_list,
-        }   
-        
+    # UPDATE REDIS CACHE 
+    data = {
+        "Doc": robot_doc.model_dump(),
+        "Task_List": task_list,
+    }  
+    
+    ROBOTTABLE.set(key, json.dumps(data))
 
+        
     response = RegisterRobotResponse(
                             robot_id = str(robot_id)
                             )
@@ -234,7 +247,8 @@ def delete_robot_by_id(robot_id:str, response_model = DeleteRobotResponse):
         - `time`: The UTC timestamp of the deletion.
     """
     # Logic to remove the robot from the system
-    if robot_id not in ROBOTTABLE:
+    key = f"robot:{str(robot_id)}" 
+    if key not in ROBOTTABLE:
         logger.warning("Robot not found in robot table")
         
     try :
@@ -265,9 +279,6 @@ def get_all_task():
 @app.get("/task/{task_id}")
 def get_task_by_id():
     pass
-
-
-
 
 
 
@@ -320,10 +331,12 @@ def registerTask(packet:RegisterTaskRequest):
     
     # step 4 update cache 
     # TODO: 
-    if robot_id not in ROBOTTABLE:
+    key = f"robot:{str(robot_id)}" 
+    if key not in ROBOTTABLE:
         raise KeyError(f"{robot_id} has not been registered")
-    with consumer_manager.lock:
-        ROBOTTABLE[str(robot_id)][str(task_id)] = task_doc
+
+    key = f"robot:{str(robot_id)}.task:{str(task_id)}"
+    ROBOTTABLE.set(key=key, value=task_doc.model_dump_json())
 
     return RegisterTaskResponse(task_id=str(task_id),
                                 status=STATUS.PENDING)
@@ -334,33 +347,37 @@ def registerTask(packet:RegisterTaskRequest):
 def goal_reached(packet:GoalReachedRequest):
     robot_id = packet.robot_id
     task_id = packet.task_id
-    if robot_id in ROBOTTABLE:
-        if task_id in ROBOTTABLE[robot_id]:
-            task_doc:TaskDocument = ROBOTTABLE[robot_id][task_id]
-            try:
-                TaskDocument.update_document(filter={"_id": task_doc.id},
-                                         update={"$set": {"status": str(STATUS.COMPLETE)}})
-            except Exception as e:
-                raise RuntimeError(f"{e}")
-        else: 
-            raise HTTPException(status_code=404, detail="Task not found")
-        del ROBOTTABLE[robot_id][task_id]
+    key = f"robot:{str(robot_id)}.task:{str(task_id)}"
+    if key in ROBOTTABLE:
+        print(ROBOTTABLE.get(key))
+        if ROBOTTABLE.get(key) is None:
+            raise HTTPException(status_code=500, detail=f"Task {task_id} not found in ROBOTTABLE")
+        task_json = json.loads(ROBOTTABLE.get(key))
+
+        task_doc:TaskDocument = TaskDocument(**task_json)
+
+        try:
+            TaskDocument.update_document(filter={"_id": str(task_doc.id)},
+                                        update={"$set": {"status": str(STATUS.COMPLETE)}})
+        except Exception as e:
+            raise RuntimeError(f"{e}")
+   
+        del ROBOTTABLE[key]
     else:
         try:
-            matched_count, modified_count = TaskDocument.update_document(filter={"_id":task_id },
+            matched_count, modified_count = TaskDocument.update_document(filter={"_id":task_id , "task.robot_id": robot_id},
                                         update={"$set": {"status": "complete"}})  
+            print(matched_count, modified_count)
         except Exception as e:
             logger.error(f"error when updating database{e}")
             raise HTTPException(status_code=500, detail="Internal Server Error: Unable to update Database")
         if matched_count == 0:
             logger.error("no documents were updated")
-            raise HTTPException(status_code=404, detail="TASK NOT FOUND")
+            raise HTTPException(status_code=400, detail="INTERAL SERVER ERROR: TASK NOT FOUND")
         elif modified_count == 0:
             logger.warning("documents was already updated")
             
     
-            
-
     return GoalReachedResponse(
         status=STATUS.COMPLETE,
         message="Task status updated successfully and removed from cache."
