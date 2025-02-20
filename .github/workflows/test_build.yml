@@ -19,7 +19,8 @@ jobs:
       AZURE_OPENAI_KEY: ${{ secrets.AZURE_OPENAI_KEY }}
       AZURE_OPENAI_ENDPOINT_2: ${{ secrets.AZURE_OPENAI_ENDPOINT_2 }}
       AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
-      
+
+  
       
 
     services:
@@ -57,7 +58,14 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
-
+      - name: Verify API Key
+        run: |
+          if [ -z "$OPIK_KEY" ]; then
+            echo "OPIK_KEY is not set!"
+            exit 1
+          else
+            echo "OPIK_API_KEY is set."
+          fi
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
