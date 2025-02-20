@@ -70,4 +70,4 @@ jobs:
           poetry install --no-root
 
       - name: Run Test Cases
-        run: poetry run pytest --maxfail=1 --disable-warnings -q
+        run: poetry run pytest -s --maxfail=1 --disable-warnings -q
