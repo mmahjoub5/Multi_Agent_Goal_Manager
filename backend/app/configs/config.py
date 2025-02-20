@@ -4,7 +4,7 @@ import opik
 from  shared.rabbitmq_manager import RabbitMQ_Client
 from pydantic import BaseModel
 import logging
-
+from backend.app.cache.redis import RedisWrapper
 # from cache.redis import RedisWrapper
 # Load environment variables at the start of your application
 load_dotenv()
@@ -47,8 +47,8 @@ rabbitmq_client = RabbitMQ_Client()
 MONGO_URI = "mongodb://localhost:27017" 
 DATABASE_NAME = "robotarm_db"
 
-# ROBOTTABLE = RedisWrapper()
-ROBOTTABLE = {}
+ROBOTTABLE = RedisWrapper()
+
 
 
 # API Table 
