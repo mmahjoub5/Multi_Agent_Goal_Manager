@@ -15,6 +15,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
+
     env:
       OPIK_KEY: ${{ secrets.OPIK_KEY }}
       GPT4_ENDPOINT: ${{ secrets.GPT4_ENDPOINT }}
@@ -55,6 +56,8 @@ jobs:
           --health-retries 5
 
     steps:
+      - name: Set up Docker
+        uses: docker/setup-docker-action@v4
       - name: Checkout Repository
         uses: actions/checkout@v3
       - name: Verify API Key
