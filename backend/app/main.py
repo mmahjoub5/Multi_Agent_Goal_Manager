@@ -61,9 +61,20 @@ def on_task_request_callback(ch, method, properties, body):
         raise RuntimeError(f"Unexpected error during deserialization: {e}")
        
     
+    robot_key = f"robot:{str(packet.robot_id)}" 
+    if robot_key not in ROBOTTABLE:
+        raise KeyError(f"Robot {packet.robot_id} not found in ROBOTTABLE")
+    raw_robot_data = json.loads(ROBOTTABLE.get(robot_key))
+    robotDoc:RobotDocument = RobotDocument(**raw_robot_data["Doc"])
+
+
+    task_key = f"robot:{str(packet.robot_id)}.task:{str(packet.task_id)}"
+    if task_key not in ROBOTTABLE:
+        raise KeyError(f"Task {packet.task_id} not found in ROBOTTABLE")
+    task_json = json.loads(ROBOTTABLE.get(task_key))
+    taskDoc:TaskDocument = TaskDocument(**task_json)
+
     
-    robotDoc:RobotDocument = ROBOTTABLE[packet.robot_id]["Doc"]
-    taskDoc:TaskDocument = ROBOTTABLE[packet.robot_id][packet.task_id]
     if str(robotDoc) is None:
         raise KeyError("robot id not in robot table, so end point /setGoal was never called")
     
@@ -330,7 +341,6 @@ def registerTask(packet:RegisterTaskRequest):
     
     
     # step 4 update cache 
-    # TODO: 
     key = f"robot:{str(robot_id)}" 
     if key not in ROBOTTABLE:
         raise KeyError(f"{robot_id} has not been registered")

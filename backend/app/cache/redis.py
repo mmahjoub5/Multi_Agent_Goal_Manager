@@ -5,7 +5,7 @@ import json
 class RedisWrapper:
     def __init__(self, redis_host="localhost", redis_port=6379, db=0):
         # Initialize Redis client
-        self.db = db
+        self.db = db    
         self.redis = redis.Redis(host=redis_host, port=redis_port, db=db, decode_responses=True)
 
     def __getitem__(self, key): 
